@@ -1,5 +1,9 @@
 import React from 'react';
 import MapComponent from './components/MapView';
+import ChartOne from './components/ChartOne';
+import ChartTwo from './components/ChartTwo';
+import ChartThree from './components/ChartThree';
+import { UI_CONFIG } from './config/uiConfig';
 import './App.css';
 
 function App() {
@@ -7,16 +11,16 @@ function App() {
     <div className="App">
       <div className="grid-container">
         <div className="grid-item top-left">
-          <h2>Top Left Section</h2>
+          <ChartOne />
         </div>
         <div className="grid-item top-right">
           <MapComponent />
         </div>
         <div className="grid-item bottom-left">
-          <h2>Bottom Left Section</h2>
+          <ChartTwo />
         </div>
         <div className="grid-item bottom-right">
-          <h2>Bottom Right Section</h2>
+          <ChartThree />
         </div>
       </div>
     </div>

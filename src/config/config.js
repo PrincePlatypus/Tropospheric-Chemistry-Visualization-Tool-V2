@@ -3,7 +3,7 @@
  */
 
 import { MAP_CONFIG } from './componentConfig/mapConfig';
-import { MAP_LAYERS, LAYER_TEMPLATE } from './mapLayers';
+import { MAP_LAYERS, LAYER_TEMPLATE } from './layers';
 import { UI_CONFIG } from './uiConfig';
 import { CHART_ONE } from './componentConfig/chartOne';
 import { CHART_TWO } from './componentConfig/chartTwo';
