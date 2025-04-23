@@ -37,7 +37,8 @@ export const MAP_LAYERS = {
     id: 'NO2_Hourly',
     title: 'NO2 Hourly',
     url: 'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
-    type: 'ImageServer'
+    type: 'ImageServer',
+    variableName: 'NO2'
   },
   
   NO2_Daily: {
@@ -45,7 +46,8 @@ export const MAP_LAYERS = {
     id: 'NO2_Daily',
     title: 'NO2 Daily',
     url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Daily_Maximum/ImageServer',
-    type: 'ImageServer'
+    type: 'ImageServer',
+    variableName: 'NO2'
   },
 
   NO2_Monthly: {
@@ -53,7 +55,8 @@ export const MAP_LAYERS = {
     id: 'NO2_Monthly',
     title: 'NO2 Monthly',
     url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Monthly_Mean/ImageServer',
-    type: 'FeatureLayer'
+    type: 'ImageServer',
+    variableName: 'NO2'
   },
 
   HCHO_Hourly: {
@@ -61,7 +64,8 @@ export const MAP_LAYERS = {
     id: 'HCHO_Hourly',
     title: 'HCHO Hourly',
     url: 'https://gis.earthdata.nasa.gov/image/rest/services/C2930761273-LARC_CLOUD/TEMPO_HCHO_L3_V03_HOURLY_VERTICAL_COLUMN/ImageServer',
-    type: 'ImageServer'
+    type: 'ImageServer',
+    variableName: 'HCHO'
   },
 
   HCHO_Daily: {
@@ -69,7 +73,8 @@ export const MAP_LAYERS = {
     id: 'HCHO_Daily',
     title: 'HCHO Daily',
     url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Daily_Maximum/ImageServer',
-    type: 'ImageServer'
+    type: 'ImageServer',
+    variableName: 'HCHO'
   },
 
   HCHO_Monthly: {
@@ -77,6 +82,7 @@ export const MAP_LAYERS = {
     id: 'HCHO_Monthly',
     title: 'HCHO Monthly',
     url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Monthly_Mean/ImageServer',
-    type: 'ImageServer'
+    type: 'ImageServer',
+    variableName: 'HCHO'
   }
 }; 

@@ -2,15 +2,18 @@ import React, { useEffect, useRef } from 'react';
 import Map from '@arcgis/core/Map';
 import MapView from '@arcgis/core/views/MapView';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
+import MosaicRule from '@arcgis/core/layers/support/MosaicRule';
 import esriConfig from '@arcgis/core/config';
 import { MAP_CONFIG, API_CONFIG } from '../config/config';
 import { useMap } from '../context/MapContext';
+import { useTime } from '../context/TimeContext';
 
 const MapComponent = () => {
   const mapDiv = useRef(null);
   const mapInstance = useRef(null);
   const viewInstance = useRef(null);
   const { getCurrentViewConfig } = useMap();
+  const { timeRange, interval } = useTime();
 
   // Initialize ArcGIS configuration
   const initializeArcGIS = () => {
@@ -21,6 +24,8 @@ const MapComponent = () => {
 
   // Create and configure map layers
   const createMapLayers = (map, layers) => {
+    console.log('Creating layers:', layers); // Debug log
+
     layers.forEach((layerConfig, index) => {
       let layer;
       
@@ -30,10 +35,12 @@ const MapComponent = () => {
             url: layerConfig.url,
             title: layerConfig.title,
             id: layerConfig.id,
-            visible: layerConfig.visible,
+            visible: layerConfig.visible, // Explicitly use the visibility from config
             opacity: layerConfig.opacity,
             listMode: "show"
           });
+          layer.variableName = layerConfig.variableName;
+          console.log(`Creating layer ${layerConfig.id} with visibility:`, layerConfig.visible); // Debug log
           break;
         default:
           console.warn(`Unsupported layer type: ${layerConfig.type}`);
@@ -48,43 +55,84 @@ const MapComponent = () => {
 
   // Initialize map with mapConfig configuration
   const initializeMap = () => {
-    // Create map with basemap from mapConfig
     const map = new Map({
       basemap: MAP_CONFIG.basemap
     });
 
-    // Create view with all settings from mapConfig
     const view = new MapView({
       container: mapDiv.current,
       map: map,
-      // Spread all initial view settings
       ...MAP_CONFIG.initialView,
-      // Enable navigation settings
       navigation: MAP_CONFIG.navigation
     });
 
-    // Store instances for later use
     mapInstance.current = map;
     viewInstance.current = view;
 
-    // Configure initial layers from mapConfig
-    const initialLayers = MAP_CONFIG.layers;
-    createMapLayers(map, initialLayers);
+    // Use mapConfig layers directly
+    console.log('MAP_CONFIG layers:', MAP_CONFIG.layers); // Debug log
+    createMapLayers(map, MAP_CONFIG.layers);
 
-    // Apply any additional view configurations from context
-    const contextConfig = getCurrentViewConfig();
-    if (contextConfig.layers) {
-      // Update layer visibility based on context
-      map.layers.forEach(layer => {
-        const contextLayer = contextConfig.layers.find(l => l.id === layer.id);
-        if (contextLayer) {
-          layer.visible = contextLayer.visible;
-          layer.opacity = contextLayer.opacity;
-        }
-      });
-    }
+    // Apply initial time setting via mosaic rule using the interval
+    updateLayerMosaicRules(timeRange.current, interval);
 
     return view;
+  };
+
+  // Function to update mosaic rules based on time interval
+  const updateLayerMosaicRules = (currentTime, currentInterval) => {
+    if (!mapInstance.current) return;
+
+    // Calculate start and end time for the interval
+    const currentEpochTime = currentTime.getTime();
+    let intervalStartTime, intervalEndTime;
+
+    switch (currentInterval) {
+      case '1h':
+        // Interval starts at the beginning of the current hour
+        intervalStartTime = new Date(currentTime);
+        intervalStartTime.setMinutes(0, 0, 0);
+        // Interval ends at the beginning of the next hour
+        intervalEndTime = new Date(intervalStartTime.getTime() + 60 * 60 * 1000);
+        break;
+      case '1m':
+        // Interval starts at the beginning of the current month
+        intervalStartTime = new Date(currentTime.getFullYear(), currentTime.getMonth(), 1);
+        // Interval ends at the beginning of the next month
+        intervalEndTime = new Date(currentTime.getFullYear(), currentTime.getMonth() + 1, 1);
+        break;
+      case '1d':
+      default: // Default to daily interval
+        // Interval starts at the beginning of the current day (midnight)
+        intervalStartTime = new Date(currentTime);
+        intervalStartTime.setHours(0, 0, 0, 0);
+        // Interval ends at the beginning of the next day (midnight)
+        intervalEndTime = new Date(intervalStartTime.getTime() + 24 * 60 * 60 * 1000);
+        break;
+    }
+
+    const startEpoch = intervalStartTime.getTime();
+    const endEpoch = intervalEndTime.getTime(); // Use the calculated end time
+
+    console.log(`Updating mosaic rules for interval: ${intervalStartTime.toISOString()} to ${intervalEndTime.toISOString()} (${startEpoch} to ${endEpoch})`);
+
+    mapInstance.current.layers.forEach(layer => {
+      if (layer instanceof ImageryLayer && layer.variableName) {
+        console.log(`Updating mosaic rule for layer: ${layer.id} with variable: ${layer.variableName}`);
+        layer.mosaicRule = new MosaicRule({
+          ascending: true,
+          mosaicMethod: "esriMosaicCenter",
+          multidimensionalDefinition: [{
+            variableName: layer.variableName,
+            dimensionName: "StdTime",
+            values: [[startEpoch, endEpoch]], // Use the interval [start, end]
+            isSlice: false // Indicate it's a range, not a single slice
+          }],
+          // mosaicOperation: "MT_FIRST" // Or MT_MEAN, MT_MAX etc. depending on desired result within the interval
+          // Let's try removing mosaicOperation to see if the service default works better for ranges
+        });
+      }
+    });
   };
 
   useEffect(() => {
@@ -97,8 +145,15 @@ const MapComponent = () => {
       if (view) {
         view.destroy();
       }
+      mapInstance.current = null; // Clear refs on unmount
+      viewInstance.current = null;
     };
   }, []);
+
+  // Effect to update layer mosaic rules when time or interval changes
+  useEffect(() => {
+    updateLayerMosaicRules(timeRange.current, interval);
+  }, [timeRange.current, interval]); // Re-run when current time or interval changes
 
   return (
     <div 

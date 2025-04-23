@@ -1,0 +1,28 @@
+.time-control {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  width: 80%;
+  max-width: 600px;
+}
+
+.time-slider {
+  width: 100%;
+  margin: 10px 0;
+}
+
+.time-display {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.interval-display {
+  text-align: center;
+  margin-top: 5px;
+  font-size: 0.9em;
+} 

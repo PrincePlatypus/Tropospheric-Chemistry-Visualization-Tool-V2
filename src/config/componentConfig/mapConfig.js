@@ -26,11 +26,17 @@ export const LAYER_ORDER = [
 
 // Create ordered layers array with full configuration
 const orderedLayers = LAYER_ORDER
-  .map(layerConfig => ({
-    ...MAP_LAYERS[layerConfig.id],
-    visible: layerConfig.visible,
-    opacity: layerConfig.opacity
-  }));
+  .filter(layerConfig => MAP_LAYERS[layerConfig.id]) // Ensure layer exists
+  .map(layerConfig => {
+    const layerDetails = MAP_LAYERS[layerConfig.id];
+    return {
+      ...layerDetails,
+      visible: layerConfig.visible,
+      opacity: layerConfig.opacity
+    };
+  });
+
+console.log('Ordered Layers:', orderedLayers); // Debug log
 
 export const MAP_CONFIG = {
   basemap: 'hybrid',
