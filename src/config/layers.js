@@ -32,19 +32,51 @@ export const LAYER_TEMPLATE = {
 
 // Active layer configurations
 export const MAP_LAYERS = {
-  samplePoints: {
+  NO2_Hourly: {
     ...LAYER_TEMPLATE,
-    id: 'sample_points',
-    title: 'Sample Locations',
-    url: 'your_feature_service_url',
+    id: 'NO2_Hourly',
+    title: 'NO2 Hourly',
+    url: 'https://gis.earthdata.nasa.gov/image/rest/services/C2930763263-LARC_CLOUD/TEMPO_NO2_L3_V03_HOURLY_TROPOSPHERIC_VERTICAL_COLUMN/ImageServer',
+    type: 'ImageServer'
+  },
+  
+  NO2_Daily: {
+    ...LAYER_TEMPLATE,
+    id: 'NO2_Daily',
+    title: 'NO2 Daily',
+    url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Daily_Maximum/ImageServer',
+    type: 'ImageServer'
+  },
+
+  NO2_Monthly: {
+    ...LAYER_TEMPLATE,
+    id: 'NO2_Monthly',
+    title: 'NO2 Monthly',
+    url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_NO2_L3_V03_Monthly_Mean/ImageServer',
     type: 'FeatureLayer'
   },
-  // Add more layers as needed by copying LAYER_TEMPLATE
-  weatherData: {
+
+  HCHO_Hourly: {
     ...LAYER_TEMPLATE,
-    id: 'weather_data',
-    title: 'Weather Information',
-    url: 'weather_service_url',
-    type: 'MapImageLayer'
+    id: 'HCHO_Hourly',
+    title: 'HCHO Hourly',
+    url: 'https://gis.earthdata.nasa.gov/image/rest/services/C2930761273-LARC_CLOUD/TEMPO_HCHO_L3_V03_HOURLY_VERTICAL_COLUMN/ImageServer',
+    type: 'ImageServer'
+  },
+
+  HCHO_Daily: {
+    ...LAYER_TEMPLATE,
+    id: 'HCHO_Daily',
+    title: 'HCHO Daily',
+    url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Daily_Maximum/ImageServer',
+    type: 'ImageServer'
+  },
+
+  HCHO_Monthly: {
+    ...LAYER_TEMPLATE,
+    id: 'HCHO_Monthly',
+    title: 'HCHO Monthly',
+    url: 'https://gis.earthdata.nasa.gov/gp/rest/services/Hosted/TEMPO_HCHO_L3_V03_Monthly_Mean/ImageServer',
+    type: 'ImageServer'
   }
 }; 

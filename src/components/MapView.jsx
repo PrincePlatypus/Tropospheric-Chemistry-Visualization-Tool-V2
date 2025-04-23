@@ -1,33 +1,98 @@
 import React, { useEffect, useRef } from 'react';
 import Map from '@arcgis/core/Map';
 import MapView from '@arcgis/core/views/MapView';
+import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import esriConfig from '@arcgis/core/config';
 import { MAP_CONFIG, API_CONFIG } from '../config/config';
+import { useMap } from '../context/MapContext';
 
 const MapComponent = () => {
   const mapDiv = useRef(null);
+  const mapInstance = useRef(null);
+  const viewInstance = useRef(null);
+  const { getCurrentViewConfig } = useMap();
 
-  useEffect(() => {
-    // Initialize the API key if you have one
+  // Initialize ArcGIS configuration
+  const initializeArcGIS = () => {
     if (API_CONFIG.arcgisApiKey) {
       esriConfig.apiKey = API_CONFIG.arcgisApiKey;
     }
+  };
 
-    // Create a new Map instance
+  // Create and configure map layers
+  const createMapLayers = (map, layers) => {
+    layers.forEach((layerConfig, index) => {
+      let layer;
+      
+      switch (layerConfig.type) {
+        case 'ImageServer':
+          layer = new ImageryLayer({
+            url: layerConfig.url,
+            title: layerConfig.title,
+            id: layerConfig.id,
+            visible: layerConfig.visible,
+            opacity: layerConfig.opacity,
+            listMode: "show"
+          });
+          break;
+        default:
+          console.warn(`Unsupported layer type: ${layerConfig.type}`);
+          return;
+      }
+
+      if (layer) {
+        map.add(layer, index);
+      }
+    });
+  };
+
+  // Initialize map with mapConfig configuration
+  const initializeMap = () => {
+    // Create map with basemap from mapConfig
     const map = new Map({
       basemap: MAP_CONFIG.basemap
     });
 
-    // Create the MapView
+    // Create view with all settings from mapConfig
     const view = new MapView({
       container: mapDiv.current,
       map: map,
-      zoom: MAP_CONFIG.initialView.zoom,
-      center: MAP_CONFIG.initialView.center,
-      constraints: MAP_CONFIG.initialView.constraints
+      // Spread all initial view settings
+      ...MAP_CONFIG.initialView,
+      // Enable navigation settings
+      navigation: MAP_CONFIG.navigation
     });
 
-    // Cleanup function to destroy the view when component unmounts
+    // Store instances for later use
+    mapInstance.current = map;
+    viewInstance.current = view;
+
+    // Configure initial layers from mapConfig
+    const initialLayers = MAP_CONFIG.layers;
+    createMapLayers(map, initialLayers);
+
+    // Apply any additional view configurations from context
+    const contextConfig = getCurrentViewConfig();
+    if (contextConfig.layers) {
+      // Update layer visibility based on context
+      map.layers.forEach(layer => {
+        const contextLayer = contextConfig.layers.find(l => l.id === layer.id);
+        if (contextLayer) {
+          layer.visible = contextLayer.visible;
+          layer.opacity = contextLayer.opacity;
+        }
+      });
+    }
+
+    return view;
+  };
+
+  useEffect(() => {
+    // Initialize the map
+    initializeArcGIS();
+    const view = initializeMap();
+
+    // Cleanup function
     return () => {
       if (view) {
         view.destroy();
