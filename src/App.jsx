@@ -4,6 +4,7 @@ import ChartOne from './components/ChartOne';
 import ChartTwo from './components/ChartTwo';
 import ChartThree from './components/ChartThree';
 import TimeControl from './components/TimeControl';
+import AnimationButton from './components/AnimationButton';
 import { UI_CONFIG } from './config/uiConfig';
 import { MapProvider } from './context/MapContext';
 import { TimeProvider } from './context/TimeContext';
@@ -31,6 +32,7 @@ function App() {
           </div>
           <div className="controls-container">
             <TimeControl />
+            <AnimationButton />
           </div>
         </div>
       </MapProvider>

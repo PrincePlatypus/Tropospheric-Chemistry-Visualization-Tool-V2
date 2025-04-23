@@ -5,14 +5,13 @@ import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import MosaicRule from '@arcgis/core/layers/support/MosaicRule';
 import esriConfig from '@arcgis/core/config';
 import { MAP_CONFIG, API_CONFIG } from '../config/config';
-import { useMap } from '../context/MapContext';
 import { useTime } from '../context/TimeContext';
 
 const MapComponent = () => {
   const mapDiv = useRef(null);
   const mapInstance = useRef(null);
   const viewInstance = useRef(null);
-  const { timeRange, interval } = useTime();
+  const { intervalTimeRange } = useTime();
 
   // Initialize ArcGIS configuration
   const initializeArcGIS = () => {
@@ -72,62 +71,42 @@ const MapComponent = () => {
     console.log('MAP_CONFIG layers:', MAP_CONFIG.layers); // Debug log
     createMapLayers(map, MAP_CONFIG.layers);
 
-    // Apply initial time setting via mosaic rule using the interval
-    updateLayerMosaicRules(timeRange.current, interval);
+    // Apply initial time setting via mosaic rule using the intervalTimeRange
+    updateLayerMosaicRules(intervalTimeRange.start, intervalTimeRange.end);
 
     return view;
   };
 
-  // Function to update mosaic rules based on time interval
-  const updateLayerMosaicRules = (currentTime, currentInterval) => {
-    if (!mapInstance.current) return;
+  // Function to update mosaic rules based on interval start and end dates
+  const updateLayerMosaicRules = (intervalStart, intervalEnd) => {
+    if (!mapInstance.current || !intervalStart || !intervalEnd) return;
 
-    // Calculate start and end time for the interval
-    let intervalStartTime, intervalEndTime;
+    // Use the provided interval start and end times directly
+    const startEpoch = intervalStart.getTime();
+    const endEpoch = intervalEnd.getTime();
 
-    switch (currentInterval) {
-      case '1h':
-        // Interval starts at the beginning of the current hour
-        intervalStartTime = new Date(currentTime);
-        intervalStartTime.setMinutes(0, 0, 0);
-        // Interval ends at the beginning of the next hour
-        intervalEndTime = new Date(intervalStartTime.getTime() + 60 * 60 * 1000);
-        break;
-      case '1m':
-        // Interval starts at the beginning of the current month
-        intervalStartTime = new Date(currentTime.getFullYear(), currentTime.getMonth(), 1);
-        // Interval ends at the beginning of the next month
-        intervalEndTime = new Date(currentTime.getFullYear(), currentTime.getMonth() + 1, 1);
-        break;
-      case '1d':
-      default: // Default to daily interval
-        // Interval starts at the beginning of the current day (midnight)
-        intervalStartTime = new Date(currentTime);
-        intervalStartTime.setHours(0, 0, 0, 0);
-        // Interval ends at the beginning of the next day (midnight)
-        intervalEndTime = new Date(intervalStartTime.getTime() + 24 * 60 * 60 * 1000);
-        break;
+    // Ensure end is not before start (can happen with rapid updates/clamping)
+    if (endEpoch < startEpoch) {
+        console.warn("Mosaic rule update skipped: end time is before start time.");
+        return;
     }
 
-    const startEpoch = intervalStartTime.getTime();
-    const endEpoch = intervalEndTime.getTime(); // Use the calculated end time
-
-    console.log(`Updating mosaic rules for interval: ${intervalStartTime.toISOString()} to ${intervalEndTime.toISOString()} (${startEpoch} to ${endEpoch})`);
+    console.log(`Updating mosaic rules for interval: ${intervalStart.toISOString()} to ${intervalEnd.toISOString()} (${startEpoch} to ${endEpoch})`);
 
     mapInstance.current.layers.forEach(layer => {
       if (layer instanceof ImageryLayer && layer.variableName) {
         console.log(`Updating mosaic rule for layer: ${layer.id} with variable: ${layer.variableName}`);
         layer.mosaicRule = new MosaicRule({
           ascending: true,
-          mosaicMethod: "esriMosaicCenter",
+          mosaicMethod: "esriMosaicCenter", // Or another method if needed
           multidimensionalDefinition: [{
             variableName: layer.variableName,
-            dimensionName: "StdTime",
+            dimensionName: "StdTime", // Assuming this is correct for your services
             values: [[startEpoch, endEpoch]], // Use the interval [start, end]
-            isSlice: false // Indicate it's a range, not a single slice
+            isSlice: false // Indicate it's a range
           }],
-          // mosaicOperation: "MT_FIRST" // Or MT_MEAN, MT_MAX etc. depending on desired result within the interval
-          // Let's try removing mosaicOperation to see if the service default works better for ranges
+          // Consider mosaicOperation if needed (e.g., MT_MEAN, MT_MAX)
+          // mosaicOperation: "MT_MEAN"
         });
       }
     });
@@ -146,12 +125,13 @@ const MapComponent = () => {
       mapInstance.current = null; // Clear refs on unmount
       viewInstance.current = null;
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
-  // Effect to update layer mosaic rules when time or interval changes
+  // Effect to update layer mosaic rules when intervalTimeRange changes
   useEffect(() => {
-    updateLayerMosaicRules(timeRange.current, interval);
-  }, [timeRange.current, interval]); // Re-run when current time or interval changes
+    updateLayerMosaicRules(intervalTimeRange.start, intervalTimeRange.end);
+  }, [intervalTimeRange]); // Re-run when intervalTimeRange changes
 
   return (
     <div 

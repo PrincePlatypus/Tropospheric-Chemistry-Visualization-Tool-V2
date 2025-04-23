@@ -42,18 +42,48 @@ body, html {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;  /* Ensure controls appear above other content */
-  pointer-events: none;  /* Allow clicks to pass through to map */
+  z-index: 1000;
+  pointer-events: none;
+  display: flex; /* Use flexbox for layout */
+  flex-direction: column; /* Stack controls vertically */
+  align-items: center; /* Center items horizontally */
+  padding-bottom: 10px; /* Add some padding at the bottom */
 }
 
 .controls-container > * {
-  pointer-events: auto;  /* Re-enable clicks for actual controls */
+  pointer-events: auto;
+  margin-bottom: 10px; /* Add space below each control */
+}
+.controls-container > *:last-child {
+  margin-bottom: 0; /* No margin for the last item */
 }
 
-/* Update time-control styles to work with the new container */
+/* Basic style for the animation button */
+.animation-button {
+  padding: 8px 15px;
+  font-size: 0.9em;
+  cursor: pointer;
+  border: 1px solid #007bff;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.animation-button:hover {
+  background-color: #0056b3;
+}
+
+.animation-button:disabled {
+  background-color: #cccccc;
+  border-color: #999999;
+  cursor: not-allowed;
+}
+
+/* Adjust TimeControl margin if needed due to flex layout */
 .time-control {
-  position: relative;  /* Change from absolute to relative */
-  margin: 0 auto 20px;  /* Center horizontally and add bottom margin */
-  transform: none;  /* Remove transform */
-  left: auto;  /* Remove left positioning */
+  margin: 0; /* Remove auto horizontal margins if previously set */
+  /* Keep width/max-width as needed */
+   width: 90%;
+   max-width: 900px;
 } 
