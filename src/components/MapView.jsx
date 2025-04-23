@@ -12,7 +12,6 @@ const MapComponent = () => {
   const mapDiv = useRef(null);
   const mapInstance = useRef(null);
   const viewInstance = useRef(null);
-  const { getCurrentViewConfig } = useMap();
   const { timeRange, interval } = useTime();
 
   // Initialize ArcGIS configuration
@@ -84,7 +83,6 @@ const MapComponent = () => {
     if (!mapInstance.current) return;
 
     // Calculate start and end time for the interval
-    const currentEpochTime = currentTime.getTime();
     let intervalStartTime, intervalEndTime;
 
     switch (currentInterval) {

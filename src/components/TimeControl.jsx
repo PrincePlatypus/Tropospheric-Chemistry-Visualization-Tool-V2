@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTime } from '../context/TimeContext';
-import './TimeControl.css';
+import '../styles/TimeControl.css';
 
 const TimeControl = () => {
   const { timeRange, interval, updateCurrentTime, updateTimeRange, updateInterval } = useTime();

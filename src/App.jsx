@@ -8,7 +8,7 @@ import { UI_CONFIG } from './config/uiConfig';
 import { MapProvider } from './context/MapContext';
 import { TimeProvider } from './context/TimeContext';
 import './App.css';
-import './components/TimeControl.css';
+import './styles/TimeControl.css';
 
 function App() {
   return (
