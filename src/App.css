@@ -1,37 +1,214 @@
-.App {
-  text-align: center;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+/* Define CSS variables for row heights */
+:root {
+  --grid-row-top-height: 50vh; /* Default: 50% height for top row */
+  --grid-row-bottom-height: 50vh; /* Default: 50% height for bottom row */
+  --controls-bottom: 20px; /* Position from bottom */
+  --controls-left: 50%; /* Center horizontally */
+  --controls-transform: translateX(-50%); /* Fine-tune centering */
 }
 
-/* Remove any default margins and padding */
-body, html {
+/* General App Styling */
+body {
   margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #ffffff; /* Set default font color to white */
+  height: 100vh; /* Ensure body takes full viewport height */
+  display: flex; /* Use flexbox for body */
+  flex-direction: column; /* Stack children vertically */
+  background-color: #001c39; /* Set body background color */
 }
 
-.grid-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;  /* Two equal columns */
-  grid-template-rows: 1fr 1fr;     /* Two equal rows */
-  height: 100vh;
-  width: 100vw;
-  gap: 2px;  /* Small gap between sections */
-  background-color: #f0f0f0;  /* Light gray background */
+#root {
+  flex-grow: 1; /* Allow root to grow and fill space */
+  display: flex; /* Use flexbox for root */
+  flex-direction: column; /* Stack children vertically */
+  /* background-color: #001c39; */ /* Background moved to body */
 }
 
-.grid-item {
-  background-color: white;
-  padding: 20px;
+.app-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column; /* Stack controls above content */
+  height: 100%; /* Make app container fill the root */
+  width: 100%;
+  overflow: hidden; /* Prevent scrollbars on the main container */
+  position: relative; /* Needed for absolute positioning of controls */
+}
+
+/* --- Controls Wrapper (NEW - Static Position) --- */
+.controls-wrapper {
+  flex: 3; /* 2 parts out of 10 total */
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  width: 100%;
+  min-height: 0; /* Allow shrinking */
+}
+
+/* Optional: Row for Location Input and Variable Selector */
+.location-variable-row {
+  display: flex;
+  justify-content: center; /* Center items in the row */
+  align-items: center; /* Align items vertically */
+  width: 100%; /* Take full width of the controls wrapper */
+}
+
+/* --- Main Content Area --- */
+.main-content-area {
+  display: flex; /* Use flexbox for two columns */
+  flex-grow: 1; /* Allow this area to fill remaining space */
+  width: 100%;
+  /* height: calc(100% - 150px); */ /* No longer needed, flex-grow handles height */
+  height: 100%; /* Take full available height */
+  /* Consider adding a gap if desired */
+  padding: 10px; /* Add some space around the content area */
+  box-sizing: border-box;
+}
+
+/* --- Left and Right Columns --- */
+.right-column {
+  flex: 1; /* Each column takes half the space */
+  display: flex;
+  flex-direction: column; /* Stack components vertically within columns */
+  height: 100%; /* Fill the height of the main content area */
+  overflow: hidden; /* Prevent columns from overflowing */
+}
+
+/* --- Left Column --- */
+.left-column {
+  flex: 1; /* Take half of the main content area */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   overflow: hidden;
 }
 
-.top-right {
-  padding: 0;  /* Remove padding for map container */
+/* --- Component Wrapper --- */
+/* Ensures components fill their column space */
+.component-wrapper {
+  flex: 1; /* Charts/Map now share the remaining space */
+  background: transparent;
+  overflow: hidden; /* Important: Prevent content overflow */
+  display: flex; /* Use flex to make child fill space */
+  flex-direction: column; /* Stack title/content if needed */
+  min-height: 0; /* Crucial for flexbox shrinking/growing */
+}
+
+/* Ensure MapView and Chart containers fill the wrapper */
+.map-container, /* Assuming MapView uses this class */
+.chart-container { /* Assuming charts use this class */
+  flex-grow: 1; /* Allow map/chart to fill the wrapper */
+  width: 100%;
+  height: 100%;
+  min-height: 0; /* Crucial for flexbox shrinking/growing */
+}
+
+/* Specific adjustments if needed */
+#map-view-wrapper {
+  /* Map might not need internal padding */
+  padding: 0;
+}
+
+/* Remove old grid styles if they exist */
+/* .app-grid { ... } */
+/* .grid-item { ... } */
+
+/* Ensure chart canvas wrappers behave correctly */
+.chart-canvas-wrapper {
+    flex-grow: 1;
+    position: relative; /* Needed for chart.js responsiveness */
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+canvas {
+    display: block; /* Prevent extra space below canvas */
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* Chart Container base styles (apply to all chart components) */
+.chart-container h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1em;
+  text-align: left;
+}
+
+/* Wrapper for the canvas to control its size within the flex container */
+.chart-canvas-wrapper {
+  flex-grow: 1; /* Allow wrapper to take remaining space */
+  position: relative; /* Needed for chart.js responsiveness */
+  min-height: 150px; /* Ensure a minimum height */
+}
+
+/* Ensure canvas itself fills its wrapper */
+.chart-canvas-wrapper canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Specific styles for ChartTwo if needed */
+.chart-two-container {
+  /* Add specific styles for ChartTwo here if necessary */
+}
+
+/* Styles for LocationInput */
+/* Styles from LocationInput.css */
+
+/* Styles for VariableSelector */
+/* Styles from VariableSelector.css */
+
+/* Styles for AnimationButton */
+.animation-button {
+  /* Basic button styling */
+  padding: 1px 15px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.animation-button:hover {
+  background-color: #f0f0f0;
+}
+
+.animation-button.playing {
+  background-color: #a0e0a0; /* Greenish when playing */
+  border-color: #70c070;
+}
+
+/* Adjust TimeControl margin if needed due to flex layout */
+.time-control {
+  /* Keep width/max-width as needed */
+   width: 100%;
+}
+
+/* ChartOne takes 50% */
+#chart-one-wrapper {
+  flex: 4; /* 5 parts out of 10 total */
+  min-height: 0; /* Allow shrinking */
+}
+
+/* ChartTwo takes 30% */
+#chart-two-wrapper {
+  flex: 3; /* 3 parts out of 10 total */
+  min-height: 0; /* Allow shrinking */
+}
+
+/* Right column components remain equal */
+.right-column > .component-wrapper {
+  flex: 1;
+  min-height: 0;
 } 

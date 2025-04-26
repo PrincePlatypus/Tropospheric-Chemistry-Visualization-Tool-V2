@@ -1,32 +1,56 @@
 import React from 'react';
-import MapComponent from './components/MapView';
+import { TimeProvider } from './context/TimeContext';
+import { SpatialProvider } from './context/SpatialContext';
+import { VariableProvider } from './context/VariableContext';
+import MapView from './components/MapView';
+import TimeControl from './components/TimeControl';
+import LocationInput from './components/LocationInput';
+import VariableSelector from './components/VariableSelector';
+import AnimationButton from './components/AnimationButton';
 import ChartOne from './components/ChartOne';
 import ChartTwo from './components/ChartTwo';
 import ChartThree from './components/ChartThree';
-import { UI_CONFIG } from './config/uiConfig';
 import './App.css';
-import { MapProvider } from './context/MapContext';
+import './styles/TimeControl.css';
+import './styles/LocationInput.css';
+import './styles/VariableSelector.css';
 
 function App() {
   return (
-    <MapProvider>
-      <div className="App">
-        <div className="grid-container">
-          <div className="grid-item top-left">
-            <ChartOne />
+    <TimeProvider>
+      <SpatialProvider>
+        <VariableProvider>
+          <div className="app-container">
+            <div className="main-content-area">
+              <div className="left-column">
+                <div className="controls-wrapper">
+                  <TimeControl />
+                  <div className="location-variable-row">
+                    <LocationInput />
+                    <VariableSelector />
+                    <AnimationButton />
+                  </div>
+                </div>
+                <div className="component-wrapper" id="chart-one-wrapper">
+                  <ChartOne />
+                </div>
+                <div className="component-wrapper" id="chart-two-wrapper">
+                  <ChartTwo />
+                </div>
+              </div>
+              <div className="right-column">
+                <div className="component-wrapper" id="map-view-wrapper">
+                  <MapView />
+                </div>
+                <div className="component-wrapper" id="chart-three-wrapper">
+                  <ChartThree />
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="grid-item top-right">
-            <MapComponent />
-          </div>
-          <div className="grid-item bottom-left">
-            <ChartTwo />
-          </div>
-          <div className="grid-item bottom-right">
-            <ChartThree />
-          </div>
-        </div>
-      </div>
-    </MapProvider>
+        </VariableProvider>
+      </SpatialProvider>
+    </TimeProvider>
   );
 }
 

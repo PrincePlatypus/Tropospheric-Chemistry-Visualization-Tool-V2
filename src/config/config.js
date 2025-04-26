@@ -7,7 +7,6 @@ import { UI_CONFIG } from './uiConfig';
 import { CHART_ONE } from './componentConfig/chartOne';
 import { CHART_TWO } from './componentConfig/chartTwo';
 import { CHART_THREE } from './componentConfig/chartThree';
-import { CHART_TYPES } from './componentConfig/chartConfig';
 import { MAP_CONFIG } from './componentConfig/mapConfig';
 
 // API and environment configurations
@@ -25,7 +24,6 @@ export {
   CHART_ONE,
   CHART_TWO,
   CHART_THREE,
-  CHART_TYPES
 };
 
 // Default export of all configurations
@@ -38,5 +36,4 @@ export default {
   CHART_ONE,
   CHART_TWO,
   CHART_THREE,
-  CHART_TYPES
 }; 

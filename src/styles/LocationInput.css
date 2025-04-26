@@ -1,0 +1,41 @@
+.location-input-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  font-size: 0.9em;
+}
+
+.location-input-container label {
+  margin-right: 2px;
+  font-weight: bold;
+}
+
+.location-input-container input[type="number"] {
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  width: 100px; /* Adjust as needed */
+  -moz-appearance: textfield; /* Firefox */
+}
+
+/* Hide spinner buttons on number inputs */
+.location-input-container input[type="number"]::-webkit-outer-spin-button,
+.location-input-container input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Style for invalid state */
+.location-input-container.invalid input[type="number"] {
+  border-color: red;
+  background-color: #fff0f0;
+}
+
+.location-input-container .error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-left: 5px;
+} 
