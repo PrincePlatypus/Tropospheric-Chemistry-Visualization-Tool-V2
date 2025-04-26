@@ -132,10 +132,10 @@ const ChartThree = () => {
                 const date = new Date(stdTime);
                 // --- Format date as "MM/YY HH:mm" ---
                 const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
-                const yearShort = date.getFullYear().toString().slice(-2);
+                const dayNumber = date.getDate().toString().padStart(2, '0');
                 const hours = date.getHours().toString().padStart(2, '0');
                 const minutes = date.getMinutes().toString().padStart(2, '0');
-                const formattedDate = `${month}/${yearShort} ${hours}:${minutes}`; // e.g., "05/24 15:45"
+                const formattedDate = `${month}/${dayNumber} ${hours}:${minutes}`; // e.g., "05/24 15:45"
                 // --- ---
                 const value = parseFloat(valueStr);
                 if (isNaN(value)) return null; // Skip if value is not a number
