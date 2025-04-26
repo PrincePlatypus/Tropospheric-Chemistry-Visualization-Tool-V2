@@ -37,7 +37,7 @@ function App() {
                   <div className="left-column">
                     <div className="controls-wrapper">
                       <h3 className="controls-title">Tropospheric Chemistry Visualization Tool V2 </h3>
-                      <h3 className="controls-subtitle">By: Project</h3>
+                      <h3 className="controls-subtitle">By: Projyct</h3>
                       <h3 className="controls-subtitle">----</h3>
                       <TimeControl />
                       <div className="location-variable-row">

@@ -107,7 +107,7 @@ const ChartThree = () => {
   const { intervalTimeRange } = useTime();
   const { clickDetails } = useSpatial();
   const { selectedVariable } = useVariable();
-  const { setFirstValue } = useChartThree(); // Get the setter from the context
+  const { setFirstValue, updateRawSamples } = useChartThree(); // Get the new function
 
   // --- Refs for Chart ---
   const chartContainerRef = useRef(null);
@@ -199,6 +199,14 @@ const ChartThree = () => {
           const processed = processData(result, params.layerConfig);
           setActualChartData(processed);
 
+          // --- Update ChartThreeContext with the raw samples ---
+          if (result && result.samples) {
+              updateRawSamples(result.samples); // Call the context function
+          } else {
+              updateRawSamples(null); // Clear if no samples received
+          }
+          // --- ---
+
           // --- Update ChartThreeContext with the first value ---
           if (result?.samples && result.samples.length > 0 && params.layerConfig?.variableName) {
             const firstSample = result.samples[0];
@@ -223,10 +231,11 @@ const ChartThree = () => {
           setError(err.message || 'Failed to fetch chart data');
           setActualChartData([]);
           setFirstValue(null); // Clear context value on error
+          updateRawSamples(null); // Clear raw samples on error
       } finally {
           setIsLoading(false);
       }
-  }, [intervalTimeRange, selectedVariable, clickDetails.location, setFirstValue, processData]);
+  }, [intervalTimeRange, selectedVariable, clickDetails.location, setFirstValue, processData, updateRawSamples]);
 
   // --- Effect to Trigger Fetch ---
   useEffect(() => {
