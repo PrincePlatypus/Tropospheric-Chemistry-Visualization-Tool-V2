@@ -4,6 +4,7 @@ import { Chart, registerables } from 'chart.js';
 import { useTime } from '../context/TimeContext';
 import { useSpatial } from '../context/SpatialContext';
 import { useVariable } from '../context/VariableContext';
+import { useChartThree } from '../context/ChartThreeContext'; // Import the context hook
 import { MAP_LAYERS } from '../config/layers';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
 import Point from '@arcgis/core/geometry/Point';
@@ -106,6 +107,7 @@ const ChartThree = () => {
   const { intervalTimeRange } = useTime();
   const { clickDetails } = useSpatial();
   const { selectedVariable } = useVariable();
+  const { setFirstValue } = useChartThree(); // Get the setter from the context
 
   // --- Refs for Chart ---
   const chartContainerRef = useRef(null);
@@ -148,6 +150,8 @@ const ChartThree = () => {
         processedSamples.sort((a, b) => a.originalDate - b.originalDate);
 
         console.log("ChartThree: Processed Data for Chart:", processedSamples);
+    } else {
+        console.log("ChartThree: No samples found in raw data or missing layer config.");
     }
     return processedSamples;
   }, []);
@@ -161,15 +165,16 @@ const ChartThree = () => {
           clickDetails.location
       );
       if (!params) {
-          console.log("ChartThree: Skipping fetch - Invalid parameters.");
+          console.log("ChartThree: Fetch parameters not ready.");
           setActualChartData(null); // Clear data if params invalid
+          setFirstValue(null); // Clear context value
           return;
       }
       // console.log(`ChartThree Fetch Triggered w/ Prepared Params | Time: ${params.startEpochMs}-${params.endEpochMs} | Layer: ${params.layerConfig.id} | Loc: ...`);
 
       setIsLoading(true);
       setError(null);
-      setActualChartData(null);
+      setFirstValue(null); // Clear context value before fetch
 
       try {
           const layer = new ImageryLayer({ url: params.layerConfig.url });
@@ -184,22 +189,44 @@ const ChartThree = () => {
               returnFirstValueOnly: false,
               returnGeometry: false,
               outFields: ["*"],
+              orderByFields: ["StdTime ASC"] // Ensure results are sorted by time
           };
           // console.log("ChartThree: Calling getSamples with query:", query);
           const result = await layer.getSamples(query);
           console.log("ChartThree: getSamples Raw Result:", result);
 
+          // --- Process data AND update state ---
           const processed = processData(result, params.layerConfig);
           setActualChartData(processed);
+
+          // --- Update ChartThreeContext with the first value ---
+          if (result?.samples && result.samples.length > 0 && params.layerConfig?.variableName) {
+            const firstSample = result.samples[0];
+            const variableKey = params.layerConfig.variableName;
+            const valueStr = firstSample.attributes?.[variableKey];
+            const firstNumericValue = valueStr !== undefined ? parseFloat(valueStr) : null;
+
+            if (!isNaN(firstNumericValue) && firstNumericValue !== null) {
+              setFirstValue(firstNumericValue); // Update context
+            } else {
+              console.warn("ChartThree: First sample value is not a valid number.", valueStr);
+              setFirstValue(null); // Set context to null if value invalid
+            }
+          } else {
+            console.log("ChartThree: No samples returned or variableName missing.");
+            setFirstValue(null); // Set context to null if no samples
+          }
+          // --- ---
 
       } catch (err) {
           console.error("ChartThree: Error fetching samples:", err);
           setError(err.message || 'Failed to fetch chart data');
           setActualChartData([]);
+          setFirstValue(null); // Clear context value on error
       } finally {
           setIsLoading(false);
       }
-  }, [intervalTimeRange, selectedVariable, clickDetails.location, processData]);
+  }, [intervalTimeRange, selectedVariable, clickDetails.location, setFirstValue, processData]);
 
   // --- Effect to Trigger Fetch ---
   useEffect(() => {
@@ -208,8 +235,9 @@ const ChartThree = () => {
       } else {
           // console.log("ChartThree: Skipping fetch - Variable or Location missing.");
           setActualChartData(null);
+          setFirstValue(null); // Clear context value if fetch skipped
       }
-  }, [fetchChartData, selectedVariable, clickDetails.location]);
+  }, [fetchChartData, selectedVariable, clickDetails.location, setFirstValue]); // Added setFirstValue dependency
 
 
   // --- Effect to Create/Update Chart ---

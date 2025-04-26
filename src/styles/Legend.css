@@ -1,0 +1,41 @@
+.legend-container {
+  position: absolute;
+  top: 10px; /* Distance from the top of the map wrapper */
+  right: 10px; /* Distance from the right of the map wrapper */
+  background-color: rgba(0, 28, 57, 0.8); /* Semi-transparent dark background */
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  z-index: 50; /* Ensure it's above map layers but below controls if needed */
+  color: #ffffff; /* White text */
+  font-size: 0.85em;
+  max-width: 200px; /* Limit width */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-title {
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legend-gradient {
+  height: 12px; /* Height of the gradient bar */
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
+}
+
+.legend-labels {
+  display: flex;
+  justify-content: space-between; /* Position min/max labels at ends */
+  font-size: 0.9em;
+}
+
+.legend-labels span {
+  display: inline-block;
+} 

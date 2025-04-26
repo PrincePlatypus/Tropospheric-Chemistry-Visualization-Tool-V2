@@ -305,13 +305,6 @@ const TimeControl = () => {
           </button>
       </div>
 
-       {/* Optional: Display current interval dates */}
-       <div className="time-control-row time-display-row">
-         <div className="time-display">
-           Interval: {previewIntervalTimeRange.start.toLocaleString()} - {previewIntervalTimeRange.end.toLocaleString()}
-         </div>
-       </div>
-
     </div>
   );
 };

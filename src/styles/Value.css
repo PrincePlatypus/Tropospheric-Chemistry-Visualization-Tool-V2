@@ -1,0 +1,33 @@
+.value-display {
+  padding: 5px 10px;
+  margin-top: 8px; /* Add some space above it */
+  text-align: center;
+  font-size: 0.95em;
+  color: #ffffff; /* White text */
+  background-color: rgba(0, 28, 57, 0.6); /* Match legend background slightly */
+  border-radius: 4px;
+  width: 90%; /* Take up most of the controls wrapper width */
+  max-width: 400px; /* Optional: prevent it getting too wide */
+  box-sizing: border-box;
+}
+
+.value-display .value-name {
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.value-display .value-number {
+  font-weight: bold;
+  color: #a0e0ff; /* Light blue for the number */
+  margin-right: 4px;
+}
+
+.value-display .value-unit {
+  font-size: 0.9em;
+}
+
+/* Optional: Style for placeholder if you use one */
+.value-display.placeholder {
+  color: #aaaaaa;
+  font-style: italic;
+} 
