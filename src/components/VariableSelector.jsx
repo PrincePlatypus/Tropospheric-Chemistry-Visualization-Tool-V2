@@ -1,7 +1,7 @@
 import React from 'react';
 import { useVariable } from '../context/VariableContext';
-// Optional: Add some basic styling
-// import '../styles/VariableSelector.css';
+// Import the CSS for styling the buttons
+import '../styles/VariableSelector.css';
 
 const VariableSelector = () => {
   const {
@@ -10,32 +10,34 @@ const VariableSelector = () => {
     updateSelectedVariable
   } = useVariable();
 
-  const handleChange = (event) => {
-    updateSelectedVariable(event.target.value);
+  // The handler now directly receives the variable ID
+  const handleClick = (variableId) => {
+    updateSelectedVariable(variableId);
   };
 
   // Handle case where context might not be ready or has no variables
   if (!availableVariables || availableVariables.length === 0) {
-    return <div>Loading variables...</div>; // Or some other placeholder
+    // Return null or a minimal placeholder for floating element
+    return null;
   }
 
   return (
+    // Container will be positioned via CSS
     <div className="variable-selector-container">
-      <label htmlFor="variable-select">Variable:</label>
-      <select
-        id="variable-select"
-        value={selectedVariableId || ''}
-        onChange={handleChange}
-      >
-        {/* Optional: Add a default disabled option */}
-        {/* <option value="" disabled>-- Select Variable --</option> */}
-
+      {/* Label removed */}
+      {/* Wrapper for the buttons */}
+      <div className="variable-buttons-wrapper">
         {availableVariables.map((variable) => (
-          <option key={variable.id} value={variable.id}>
-            {variable.name} {/* Display user-friendly name */}
-          </option>
+          <button
+            key={variable.id}
+            className={`variable-button ${selectedVariableId === variable.id ? 'active' : ''}`} // Apply 'active' class if selected
+            onClick={() => handleClick(variable.id)} // Call handler with the variable ID
+            type="button" // Explicitly set type to prevent form submission if ever nested
+          >
+            {variable.id} {/* Display variable ID (e.g., NO2) */}
+          </button>
         ))}
-      </select>
+      </div>
     </div>
   );
 };

@@ -1,22 +1,44 @@
 .variable-selector-container {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
   display: flex;
-  align-items: center;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background-color: rgba(0, 28, 57, 0.85);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.variable-buttons-wrapper {
+  display: flex;
   gap: 8px;
-  padding: 8px;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  font-size: 0.9em;
 }
 
-.variable-selector-container label {
-  font-weight: bold;
-}
-
-.variable-selector-container select {
-  padding: 5px 8px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  background-color: white;
+.variable-button { /* --- INACTIVE BUTTON STATE --- */
+  padding: 6px 12px;
+  border: 1px solid #a0a0a0; /* <<< Change INACTIVE border color here */
+  border-radius: 15px;
+  background-color: #e8e8e8; /* <<< Change INACTIVE background color here */
+  color: #222; /* <<< Change INACTIVE text color here */
   cursor: pointer;
-  flex-grow: 1; /* Allow select to take available space */
+  font-size: 0.95em;
+  font-weight: 500;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.variable-button:hover { /* --- HOVER STATE (Optional) --- */
+  background-color: #d8d8d8; /* <<< Change HOVER background color here */
+  border-color: #888; /* <<< Change HOVER border color here */
+  /* color: #000; */ /* <<< Optionally change HOVER text color here */
+}
+
+.variable-button.active { /* --- ACTIVE (SELECTED) BUTTON STATE --- */
+  background-color: #ccc900; /* <<< Change ACTIVE background color here */
+  color: white; /* <<< Change ACTIVE text color here */
+  border-color: #a09500; /* <<< Change ACTIVE border color here */
+  font-weight: bold;
 } 

@@ -40,14 +40,36 @@ body {
 
 /* --- Controls Wrapper (NEW - Static Position) --- */
 .controls-wrapper {
-  flex: 3; /* 2 parts out of 10 total */
+  flex: 3; /* 3 parts out of 10 total */
   display: flex;
   flex-direction: column;
   align-items: center;
   border-radius: 4px;
-  margin-bottom: 5px;
+  /* margin-bottom: 5px; */ /* Removed margin-bottom to let gap handle spacing */
   width: 100%;
   min-height: 0; /* Allow shrinking */
+  padding: 5px; /* Add some padding inside the wrapper */
+  box-sizing: border-box;
+}
+
+/* Style for the new title */
+.controls-title {
+  font-size: 1.5em;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  color: #ffffff; /* White text */
+  text-align: center;
+  width: 100%; /* Ensure it takes full width for centering */
+  margin-bottom: 0px;
+  margin-top: 0px;
+}
+
+.controls-subtitle {
+  font-size: 1.2em;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: bold;
+  margin-bottom: 0px;
+  margin-top: 1px;
 }
 
 /* Optional: Row for Location Input and Variable Selector */
@@ -56,6 +78,7 @@ body {
   justify-content: center; /* Center items in the row */
   align-items: center; /* Align items vertically */
   width: 100%; /* Take full width of the controls wrapper */
+  gap: 10px; /* Add gap between items in the row */
 }
 
 /* --- Main Content Area --- */
@@ -113,6 +136,7 @@ body {
 #map-view-wrapper {
   /* Map might not need internal padding */
   padding: 0;
+  position: relative; /* Add this line */
 }
 
 /* Remove old grid styles if they exist */
