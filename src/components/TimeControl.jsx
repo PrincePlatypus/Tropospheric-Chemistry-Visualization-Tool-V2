@@ -6,18 +6,26 @@ const TimeControl = () => {
   // Get new state and functions from context
   const {
     overallTimeRange,
-    intervalTimeRange,
+    previewIntervalTimeRange,
     isLocked,
     updateOverallTimeRange,
-    updateIntervalTimeRange,
+    updatePreviewIntervalTimeRange,
+    commitPreviewIntervalTimeRange,
     toggleLock
   } = useTime();
 
   // Refs for slider elements
   const sliderTrackRef = useRef(null);
-  const draggingThumbRef = useRef(null); // 'start', 'end', or null
-  const dragStartXRef = useRef(0);
-  const initialIntervalRef = useRef(null); // Store interval at drag start
+
+  // --- Refs for context functions to ensure handlers use the latest versions ---
+  const updatePreviewFuncRef = useRef(updatePreviewIntervalTimeRange);
+  const commitPreviewFuncRef = useRef(commitPreviewIntervalTimeRange);
+
+  // --- Effect to keep function refs updated ---
+  useEffect(() => {
+    updatePreviewFuncRef.current = updatePreviewIntervalTimeRange;
+    commitPreviewFuncRef.current = commitPreviewIntervalTimeRange;
+  }, [updatePreviewIntervalTimeRange, commitPreviewIntervalTimeRange]);
 
   // Format date for input type="datetime-local"
   // Output format: YYYY-MM-DDTHH:mm
@@ -70,6 +78,10 @@ const TimeControl = () => {
     // Note: We are treating the selected time as local.
     // The Date object's internal epoch value is consistent.
 
+    let currentPreviewStart = previewIntervalTimeRange.start;
+    let currentPreviewEnd = previewIntervalTimeRange.end;
+    let isValid = false;
+
     switch (type) {
       case 'overallStart':
         if (newDate <= overallTimeRange.end) {
@@ -77,155 +89,147 @@ const TimeControl = () => {
         } else {
           alert('Overall start date/time must be before overall end date/time.');
         }
-        break;
+        return; // Overall updates handle interval adjustments
       case 'overallEnd':
         if (newDate >= overallTimeRange.start) {
           updateOverallTimeRange(overallTimeRange.start, newDate);
         } else {
           alert('Overall end date/time must be after overall start date/time.');
         }
-        break;
+        return; // Overall updates handle interval adjustments
       case 'intervalStart':
-        // Check against interval end and overall bounds
-        if (newDate <= intervalTimeRange.end && newDate >= overallTimeRange.start && newDate <= overallTimeRange.end) {
-          updateIntervalTimeRange(newDate, intervalTimeRange.end);
+        if (newDate <= previewIntervalTimeRange.end && newDate >= overallTimeRange.start && newDate <= overallTimeRange.end) {
+          currentPreviewStart = newDate;
+          isValid = true;
         } else {
           alert('Interval start must be before interval end and within the overall range.');
-          // Optionally clamp or revert based on which condition failed
         }
         break;
       case 'intervalEnd':
-         // Check against interval start and overall bounds
-         if (newDate >= intervalTimeRange.start && newDate >= overallTimeRange.start && newDate <= overallTimeRange.end) {
-          updateIntervalTimeRange(intervalTimeRange.start, newDate);
+        if (newDate >= previewIntervalTimeRange.start && newDate >= overallTimeRange.start && newDate <= overallTimeRange.end) {
+          currentPreviewEnd = newDate;
+          isValid = true;
         } else {
           alert('Interval end must be after interval start and within the overall range.');
-          // Optionally clamp or revert based on which condition failed
         }
         break;
       default:
         break;
     }
+
+    if (isValid) {
+        updatePreviewIntervalTimeRange(currentPreviewStart, currentPreviewEnd);
+        commitPreviewIntervalTimeRange();
+    }
   };
 
   // Start dragging a thumb
   const handleMouseDown = (event, thumbType) => {
-    event.preventDefault(); // Prevent text selection during drag
-    draggingThumbRef.current = thumbType;
-    dragStartXRef.current = event.clientX;
-    initialIntervalRef.current = { ...intervalTimeRange }; // Store initial state for locked drag
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mouseleave', handleMouseUp); // Handle mouse leaving window
-  };
+    event.preventDefault();
 
-  // Handle mouse move during drag
-  const handleMouseMove = useCallback((event) => {
-    if (!draggingThumbRef.current || !sliderTrackRef.current || !initialIntervalRef.current) return;
+    // --- Define move and up handlers INSIDE mousedown ---
+    // They will close over the correct initial values and function refs
 
-    const trackRect = sliderTrackRef.current.getBoundingClientRect();
-    const currentX = event.clientX;
-    const deltaX = currentX - dragStartXRef.current;
-    const deltaPercent = (deltaX / trackRect.width) * 100;
+    const dragStartX = event.clientX;
+    // Capture the initial interval state *at the start of this specific drag*
+    const initialInterval = { ...previewIntervalTimeRange };
+    const currentOverallTimeRange = { ...overallTimeRange }; // Capture current overall range
+    const currentIsLocked = isLocked; // Capture current lock state
 
-    const overallStartMs = overallTimeRange.start.getTime();
-    const overallEndMs = overallTimeRange.end.getTime();
-    const totalDuration = overallEndMs - overallStartMs;
-    const deltaMs = (totalDuration * deltaPercent) / 100;
+    const handleMouseMove = (moveEvent) => {
 
-    let newStartMs, newEndMs;
-    const initialStartMs = initialIntervalRef.current.start.getTime();
-    const initialEndMs = initialIntervalRef.current.end.getTime();
-    const initialDurationMs = initialEndMs - initialStartMs;
-
-    if (isLocked) {
-      // Move both thumbs maintaining duration
-      if (draggingThumbRef.current === 'start') {
-        newStartMs = initialStartMs + deltaMs;
-        newEndMs = newStartMs + initialDurationMs;
-      } else { // dragging 'end'
-        newEndMs = initialEndMs + deltaMs;
-        newStartMs = newEndMs - initialDurationMs;
+      if (!sliderTrackRef.current) {
+        return;
       }
 
-      // Clamp to overall bounds while maintaining duration
-      if (newStartMs < overallStartMs) {
-        newStartMs = overallStartMs;
-        newEndMs = newStartMs + initialDurationMs;
-      }
-      if (newEndMs > overallEndMs) {
-        newEndMs = overallEndMs;
-        newStartMs = newEndMs - initialDurationMs;
-        // Re-check start bound after adjusting for end clamp
+      const trackRect = sliderTrackRef.current.getBoundingClientRect();
+      const currentX = moveEvent.clientX;
+      // Use the captured dragStartX
+      const deltaX = currentX - dragStartX;
+      const deltaPercent = (deltaX / trackRect.width) * 100;
+
+      // Use captured overall range
+      const overallStartMs = currentOverallTimeRange.start.getTime();
+      const overallEndMs = currentOverallTimeRange.end.getTime();
+      const totalDuration = overallEndMs - overallStartMs;
+      const deltaMs = (totalDuration * deltaPercent) / 100;
+
+      let newStartMs, newEndMs;
+      // Use captured initial interval
+      const initialStartMs = initialInterval.start.getTime();
+      const initialEndMs = initialInterval.end.getTime();
+      const initialDurationMs = initialEndMs - initialStartMs;
+
+      // Use captured lock state
+      if (currentIsLocked) {
+        if (thumbType === 'start') {
+          newStartMs = initialStartMs + deltaMs;
+          newEndMs = newStartMs + initialDurationMs;
+        } else {
+          newEndMs = initialEndMs + deltaMs;
+          newStartMs = newEndMs - initialDurationMs;
+        }
         if (newStartMs < overallStartMs) {
+          newStartMs = overallStartMs;
+          newEndMs = newStartMs + initialDurationMs;
+        }
+        if (newEndMs > overallEndMs) {
+          newEndMs = overallEndMs;
+          newStartMs = newEndMs - initialDurationMs;
+          if (newStartMs < overallStartMs) {
             newStartMs = overallStartMs;
-            // If duration doesn't fit, interval might collapse or need other logic
             if (newStartMs + initialDurationMs > overallEndMs) {
-                 newEndMs = overallEndMs; // Allow collapse if needed
+                 newEndMs = overallEndMs;
             } else {
                  newEndMs = newStartMs + initialDurationMs;
             }
+          }
         }
+      } else {
+        if (thumbType === 'start') {
+          newStartMs = initialStartMs + deltaMs;
+          newEndMs = initialEndMs;
+          if (newStartMs > newEndMs) newStartMs = newEndMs;
+        } else {
+          newStartMs = initialStartMs;
+          newEndMs = initialEndMs + deltaMs;
+          if (newEndMs < newStartMs) newEndMs = newStartMs;
+        }
+        newStartMs = Math.max(overallStartMs, newStartMs);
+        newEndMs = Math.min(overallEndMs, newEndMs);
       }
-
-    } else {
-      // Move only the dragged thumb
-      if (draggingThumbRef.current === 'start') {
-        newStartMs = initialStartMs + deltaMs;
-        newEndMs = initialEndMs; // Keep end fixed initially
-        // Prevent start from crossing end
-        if (newStartMs > newEndMs) newStartMs = newEndMs;
-      } else { // dragging 'end'
-        newStartMs = initialStartMs; // Keep start fixed initially
-        newEndMs = initialEndMs + deltaMs;
-        // Prevent end from crossing start
-        if (newEndMs < newStartMs) newEndMs = newStartMs;
-      }
-       // Clamp individual thumbs to overall bounds
-       newStartMs = Math.max(overallStartMs, newStartMs);
-       newEndMs = Math.min(overallEndMs, newEndMs);
-    }
-
-
-    // Ensure start is never strictly after end after all calculations
-    if (newStartMs > newEndMs) {
-         if (draggingThumbRef.current === 'start') {
+      if (newStartMs > newEndMs) {
+         if (thumbType === 'start') {
              newEndMs = newStartMs;
          } else {
              newStartMs = newEndMs;
          }
-    }
+      }
 
-    // Update context - uses Date objects, handles clamping internally
-    updateIntervalTimeRange(new Date(newStartMs), new Date(newEndMs));
-
-  }, [overallTimeRange, isLocked, updateIntervalTimeRange]);
-
-  // End dragging
-  const handleMouseUp = useCallback(() => {
-    if (draggingThumbRef.current) {
-      draggingThumbRef.current = null;
-      initialIntervalRef.current = null;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseleave', handleMouseUp);
-    }
-  }, [handleMouseMove]); // Include handleMouseMove in dependencies
-
-   // Cleanup listeners on unmount
-   useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseleave', handleMouseUp);
+      // Call the context function (this is stable from useTime)
+      updatePreviewFuncRef.current(new Date(newStartMs), new Date(newEndMs));
     };
-  }, [handleMouseMove, handleMouseUp]); // Ensure effect reruns if handlers change
 
+    const handleMouseUp = (upEvent) => {
+      // Remove the *exact* functions that were added
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseleave', handleMouseUp);
+
+      // Commit the final state
+      commitPreviewFuncRef.current();
+    };
+
+    // --- Add listeners using the functions defined above ---
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mouseleave', handleMouseUp);
+  };
 
   // --- Calculate Styles ---
-  const startPercent = dateToPercent(intervalTimeRange.start);
-  const endPercent = dateToPercent(intervalTimeRange.end);
-  const rangeWidthPercent = endPercent - startPercent;
+  const startPercent = dateToPercent(previewIntervalTimeRange.start);
+  const endPercent = dateToPercent(previewIntervalTimeRange.end);
+  const rangeWidthPercent = Math.max(0, endPercent - startPercent); // Ensure non-negative width
 
   return (
     <div className="time-control">
@@ -287,19 +291,19 @@ const TimeControl = () => {
           <label>Interval Start:</label>
           <input
             type="datetime-local"
-            value={formatDateTimeForInput(intervalTimeRange.start)}
+            value={formatDateTimeForInput(previewIntervalTimeRange.start)}
             onChange={(e) => handleDateTimeInputChange('intervalStart', e)}
             min={formatDateTimeForInput(overallTimeRange.start)}
-            max={formatDateTimeForInput(intervalTimeRange.end)}
+            max={formatDateTimeForInput(previewIntervalTimeRange.end)}
           />
         </div>
         <div className="date-picker interval-date-picker">
           <label>Interval End:</label>
           <input
             type="datetime-local"
-            value={formatDateTimeForInput(intervalTimeRange.end)}
+            value={formatDateTimeForInput(previewIntervalTimeRange.end)}
             onChange={(e) => handleDateTimeInputChange('intervalEnd', e)}
-            min={formatDateTimeForInput(intervalTimeRange.start)}
+            min={formatDateTimeForInput(previewIntervalTimeRange.start)}
             max={formatDateTimeForInput(overallTimeRange.end)}
           />
         </div>
@@ -308,7 +312,7 @@ const TimeControl = () => {
        {/* Optional: Display current interval dates */}
        <div className="time-control-row time-display-row">
          <div className="time-display">
-           Interval: {intervalTimeRange.start.toLocaleString()} - {intervalTimeRange.end.toLocaleString()}
+           Interval: {previewIntervalTimeRange.start.toLocaleString()} - {previewIntervalTimeRange.end.toLocaleString()}
          </div>
        </div>
 

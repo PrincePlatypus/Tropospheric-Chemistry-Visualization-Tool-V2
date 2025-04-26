@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTime } from '../context/TimeContext';
-import { startAnimationSampling } from '../hooks/animate/animateSamples';
+import { startAnimationSampling } from '../hooks/animate/useAnimations';
 // Optional: Add some basic styling
 // import './AnimationButton.css';
 

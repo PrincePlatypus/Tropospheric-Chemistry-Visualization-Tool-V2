@@ -36,8 +36,6 @@ const orderedLayers = LAYER_ORDER
     };
   });
 
-console.log('Ordered Layers:', orderedLayers); // Debug log
-
 export const MAP_CONFIG = {
   basemap: 'hybrid',
   initialView: {

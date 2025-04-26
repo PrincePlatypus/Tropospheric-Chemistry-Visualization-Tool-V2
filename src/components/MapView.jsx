@@ -6,12 +6,14 @@ import MosaicRule from '@arcgis/core/layers/support/MosaicRule';
 import esriConfig from '@arcgis/core/config';
 import { MAP_CONFIG, API_CONFIG } from '../config/config';
 import { useTime } from '../context/TimeContext';
+import { useSpatial } from '../context/SpatialContext';
 
 const MapComponent = () => {
   const mapDiv = useRef(null);
   const mapInstance = useRef(null);
   const viewInstance = useRef(null);
   const { intervalTimeRange } = useTime();
+  const { updateClickDetails } = useSpatial();
 
   // Initialize ArcGIS configuration
   const initializeArcGIS = () => {
@@ -22,7 +24,7 @@ const MapComponent = () => {
 
   // Create and configure map layers
   const createMapLayers = (map, layers) => {
-    console.log('Creating layers:', layers); // Debug log
+
 
     layers.forEach((layerConfig, index) => {
       let layer;
@@ -38,7 +40,6 @@ const MapComponent = () => {
             listMode: "show"
           });
           layer.variableName = layerConfig.variableName;
-          console.log(`Creating layer ${layerConfig.id} with visibility:`, layerConfig.visible); // Debug log
           break;
         default:
           console.warn(`Unsupported layer type: ${layerConfig.type}`);
@@ -68,7 +69,6 @@ const MapComponent = () => {
     viewInstance.current = view;
 
     // Use mapConfig layers directly
-    console.log('MAP_CONFIG layers:', MAP_CONFIG.layers); // Debug log
     createMapLayers(map, MAP_CONFIG.layers);
 
     // Apply initial time setting via mosaic rule using the intervalTimeRange
@@ -85,17 +85,9 @@ const MapComponent = () => {
     const startEpoch = intervalStart.getTime();
     const endEpoch = intervalEnd.getTime();
 
-    // Ensure end is not before start (can happen with rapid updates/clamping)
-    if (endEpoch < startEpoch) {
-        console.warn("Mosaic rule update skipped: end time is before start time.");
-        return;
-    }
-
-    console.log(`Updating mosaic rules for interval: ${intervalStart.toISOString()} to ${intervalEnd.toISOString()} (${startEpoch} to ${endEpoch})`);
 
     mapInstance.current.layers.forEach(layer => {
       if (layer instanceof ImageryLayer && layer.variableName) {
-        console.log(`Updating mosaic rule for layer: ${layer.id} with variable: ${layer.variableName}`);
         layer.mosaicRule = new MosaicRule({
           ascending: true,
           mosaicMethod: "esriMosaicCenter", // Or another method if needed
@@ -112,13 +104,61 @@ const MapComponent = () => {
     });
   };
 
+  // --- Map Click Handler ---
+  const handleMapClick = async (event) => {
+    if (!viewInstance.current) return;
+
+    // Extract location (mapPoint has latitude, longitude, spatialReference)
+    const location = {
+        latitude: event.mapPoint.latitude,
+        longitude: event.mapPoint.longitude,
+        spatialReference: event.mapPoint.spatialReference?.wkid // Optional: include WKID if needed
+    };
+
+    // --- Determine clicked layer (Simple approach: find topmost visible layer) ---
+    // Note: A more robust approach might use view.hitTest() if you need precise layer identification
+    //       at the click point, especially with overlapping layers or features.
+    let clickedLayerId = null;
+    if (mapInstance.current) {
+        // Iterate layers in reverse draw order (topmost first)
+        const visibleLayers = [...mapInstance.current.layers.items]
+            .reverse()
+            .filter(layer => layer.visible && layer instanceof ImageryLayer); // Check visibility and type
+
+        if (visibleLayers.length > 0) {
+            clickedLayerId = visibleLayers[0].id; // Take the ID of the topmost visible ImageryLayer
+        }
+    }
+
+    // Update the Spatial Context
+    updateClickDetails({
+      location: location,
+      componentId: 'mapView', // Identify which component triggered the click
+      layerId: clickedLayerId, // Pass the determined layer ID
+    });
+  };
+
   useEffect(() => {
     // Initialize the map
     initializeArcGIS();
     const view = initializeMap();
 
+    // --- Add click listener after view is ready ---
+    let clickHandler = null;
+    view.when(() => {
+      clickHandler = view.on("click", handleMapClick);
+    }).catch(error => {
+        console.error("Error initializing MapView:", error);
+    });
+
     // Cleanup function
     return () => {
+      // --- Remove click listener ---
+      if (clickHandler) {
+        clickHandler.remove();
+        clickHandler = null;
+      }
+
       if (view) {
         view.destroy();
       }
@@ -130,8 +170,9 @@ const MapComponent = () => {
 
   // Effect to update layer mosaic rules when intervalTimeRange changes
   useEffect(() => {
+    // updateLayerMosaicRules uses the committed start/end times
     updateLayerMosaicRules(intervalTimeRange.start, intervalTimeRange.end);
-  }, [intervalTimeRange]); // Re-run when intervalTimeRange changes
+  }, [intervalTimeRange]); // Re-run only when committed intervalTimeRange changes
 
   return (
     <div 

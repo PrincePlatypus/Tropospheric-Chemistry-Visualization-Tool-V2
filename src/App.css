@@ -1,9 +1,23 @@
+/* Define CSS variables for row heights */
+:root {
+  --grid-row-top-height: 50vh; /* Default: 50% height for top row */
+  --grid-row-bottom-height: 50vh; /* Default: 50% height for bottom row */
+  --controls-bottom: 20px; /* Position from bottom */
+  --controls-left: 50%; /* Center horizontally */
+  --controls-transform: translateX(-50%); /* Fine-tune centering */
+}
+
 .App {
   text-align: center;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  position: relative;
+  height: 100vh; /* Make App container fill viewport height */
+  width: 100vw; /* Make App container fill viewport width */
+  overflow: hidden; /* Prevent scrollbars from App container */
+  position: relative; /* Needed for absolute positioning of controls */
+  background-color: #f0f0f0; /* Optional: Light background for visibility */
+  margin: 0;
+  padding: 0;
+  display: flex; /* Use flex to manage children if needed, though grid handles main layout */
+  flex-direction: column; /* Stack grid and potentially other elements */
 }
 
 /* Remove any default margins and padding */
@@ -14,70 +28,119 @@ body, html {
   width: 100%;
 }
 
+/* Grid Container for Charts and Map */
 .grid-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;  /* Two equal columns */
-  grid-template-rows: 1fr 1fr;     /* Two equal rows */
-  height: 100vh;
-  width: 100vw;
-  gap: 2px;  /* Small gap between sections */
-  background-color: #f0f0f0;  /* Light gray background */
+  grid-template-columns: 1fr 1fr; /* Two equal-width columns */
+  grid-template-rows: var(--grid-row-top-height) var(--grid-row-bottom-height); /* Rows based on CSS variables */
+  width: 100%;
+  height: 100%; /* Grid takes full App height */
+  padding: 0;
+  margin: 0;
+  gap: 0; /* No gap between grid items */
 }
 
+/* Individual Grid Items (Charts/Map) */
 .grid-item {
-  background-color: white;
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+  border: none; /* Remove any borders */
+  padding: 0; /* Remove padding */
+  margin: 0; /* Remove margin */
+  overflow: hidden; /* Prevent content overflow from breaking layout */
+  position: relative; /* For potential internal absolute positioning */
+  background-color: white; /* Give items a background */
+  display: flex; /* Use flexbox to manage content within the item */
+  flex-direction: column; /* Stack content vertically */
 }
 
-.top-right {
-  padding: 0;  /* Remove padding for map container */
-}
+/* Specific grid item assignments (ensure these match App.jsx structure) */
+.top-left { grid-area: 1 / 1 / 2 / 2; }
+.top-right { grid-area: 1 / 2 / 2 / 3; }
+.bottom-left { grid-area: 2 / 1 / 3 / 2; }
+.bottom-right { grid-area: 2 / 2 / 3 / 3; }
 
+/* Container for Controls (Floating Box) */
 .controls-container {
+  position: absolute; /* Position relative to .App */
+  bottom: var(--controls-bottom);
+  left: var(--controls-left);
+  transform: var(--controls-transform);
+  z-index: 1000; /* Ensure controls are above map/charts */
+
+  display: flex;
+  gap: 10px; /* Space between control elements */
+  align-items: center; /* Align items vertically */
+
+  background-color: rgba(245, 245, 245, 0.9); /* Semi-transparent background */
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Chart Container base styles (apply to all chart components) */
+.chart-container {
+  width: 100%;
+  height: 100%;
+  padding: 10px; /* Add some internal padding */
+  box-sizing: border-box; /* Include padding in width/height */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent internal scrollbars if chart resizes */
+}
+
+.chart-container h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1em;
+  text-align: left;
+}
+
+/* Wrapper for the canvas to control its size within the flex container */
+.chart-canvas-wrapper {
+  flex-grow: 1; /* Allow wrapper to take remaining space */
+  position: relative; /* Needed for chart.js responsiveness */
+  min-height: 150px; /* Ensure a minimum height */
+}
+
+/* Ensure canvas itself fills its wrapper */
+.chart-canvas-wrapper canvas {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
-  right: 0;
-  z-index: 1000;
-  pointer-events: none;
-  display: flex; /* Use flexbox for layout */
-  flex-direction: column; /* Stack controls vertically */
-  align-items: center; /* Center items horizontally */
-  padding-bottom: 10px; /* Add some padding at the bottom */
+  width: 100%;
+  height: 100%;
 }
 
-.controls-container > * {
-  pointer-events: auto;
-  margin-bottom: 10px; /* Add space below each control */
-}
-.controls-container > *:last-child {
-  margin-bottom: 0; /* No margin for the last item */
+/* Specific styles for ChartTwo if needed */
+.chart-two-container {
+  /* Add specific styles for ChartTwo here if necessary */
 }
 
-/* Basic style for the animation button */
+/* Styles for LocationInput */
+/* Styles from LocationInput.css */
+
+/* Styles for VariableSelector */
+/* Styles from VariableSelector.css */
+
+/* Styles for AnimationButton */
 .animation-button {
+  /* Basic button styling */
   padding: 8px 15px;
-  font-size: 0.9em;
+  font-size: 1em;
   cursor: pointer;
-  border: 1px solid #007bff;
-  background-color: #007bff;
-  color: white;
+  border: 1px solid #ccc;
+  background-color: #fff;
   border-radius: 4px;
   transition: background-color 0.2s ease;
 }
 
 .animation-button:hover {
-  background-color: #0056b3;
+  background-color: #f0f0f0;
 }
 
-.animation-button:disabled {
-  background-color: #cccccc;
-  border-color: #999999;
-  cursor: not-allowed;
+.animation-button.playing {
+  background-color: #a0e0a0; /* Greenish when playing */
+  border-color: #70c070;
 }
 
 /* Adjust TimeControl margin if needed due to flex layout */
