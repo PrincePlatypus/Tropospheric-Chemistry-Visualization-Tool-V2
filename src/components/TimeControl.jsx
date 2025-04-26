@@ -243,6 +243,26 @@ const TimeControl = () => {
             onChange={(e) => handleDateTimeInputChange('overallStart', e)}
           />
         </div>
+        <div className="date-picker interval-date-picker">
+          <label>Interval Start:</label>
+          <input
+            type="datetime-local"
+            value={formatDateTimeForInput(previewIntervalTimeRange.start)}
+            onChange={(e) => handleDateTimeInputChange('intervalStart', e)}
+            min={formatDateTimeForInput(overallTimeRange.start)}
+            max={formatDateTimeForInput(previewIntervalTimeRange.end)}
+          />
+        </div>
+        <div className="date-picker interval-date-picker">
+          <label>Interval End:</label>
+          <input
+            type="datetime-local"
+            value={formatDateTimeForInput(previewIntervalTimeRange.end)}
+            onChange={(e) => handleDateTimeInputChange('intervalEnd', e)}
+            min={formatDateTimeForInput(previewIntervalTimeRange.start)}
+            max={formatDateTimeForInput(overallTimeRange.end)}
+          />
+        </div>
         <div className="date-picker overall-date-picker">
           <label>Overall End:</label>
           <input
@@ -283,30 +303,6 @@ const TimeControl = () => {
           >
             {isLocked ? '🔒' : '🔓'}
           </button>
-      </div>
-
-      {/* Row for Interval Date Pickers */}
-      <div className="time-control-row date-pickers-row">
-        <div className="date-picker interval-date-picker">
-          <label>Interval Start:</label>
-          <input
-            type="datetime-local"
-            value={formatDateTimeForInput(previewIntervalTimeRange.start)}
-            onChange={(e) => handleDateTimeInputChange('intervalStart', e)}
-            min={formatDateTimeForInput(overallTimeRange.start)}
-            max={formatDateTimeForInput(previewIntervalTimeRange.end)}
-          />
-        </div>
-        <div className="date-picker interval-date-picker">
-          <label>Interval End:</label>
-          <input
-            type="datetime-local"
-            value={formatDateTimeForInput(previewIntervalTimeRange.end)}
-            onChange={(e) => handleDateTimeInputChange('intervalEnd', e)}
-            min={formatDateTimeForInput(previewIntervalTimeRange.start)}
-            max={formatDateTimeForInput(overallTimeRange.end)}
-          />
-        </div>
       </div>
 
        {/* Optional: Display current interval dates */}

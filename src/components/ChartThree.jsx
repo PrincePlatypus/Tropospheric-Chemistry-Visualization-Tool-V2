@@ -43,6 +43,63 @@ const prepareFetchParameters = (intervalTimeRange, selectedVariableId, clickLoca
     };
 };
 
+// --- Helper: Parse RGBA Color String (Copied from ChartTwo) ---
+const parseRgba = (rgbaString) => {
+    const match = rgbaString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (!match) return null;
+    return {
+        r: parseInt(match[1], 10),
+        g: parseInt(match[2], 10),
+        b: parseInt(match[3], 10),
+        a: match[4] !== undefined ? parseFloat(match[4]) : 1,
+    };
+};
+
+// --- Helper: Interpolate between two colors (Copied from ChartTwo) ---
+const interpolateColor = (color1, color2, factor) => {
+    if (factor < 0) factor = 0;
+    if (factor > 1) factor = 1;
+    const result = {
+        r: Math.round(color1.r + factor * (color2.r - color1.r)),
+        g: Math.round(color1.g + factor * (color2.g - color1.g)),
+        b: Math.round(color1.b + factor * (color2.b - color1.b)),
+        a: color1.a + factor * (color2.a - color1.a),
+    };
+    return `rgba(${result.r}, ${result.g}, ${result.b}, ${result.a})`;
+};
+
+// --- Helper: Get Color from Ramp based on Value (Copied from ChartTwo) ---
+const getColorForValue = (value, chartColorRamp) => {
+    if (value === null || value === undefined || !chartColorRamp || !chartColorRamp.stops || chartColorRamp.stops.length === 0) {
+        return 'rgba(128, 128, 128, 0.5)'; // Default grey
+    }
+    const stops = chartColorRamp.stops;
+    let lowerStop = stops[0];
+    let upperStop = stops[stops.length - 1];
+
+    if (value <= lowerStop.value) return lowerStop.color;
+    if (value >= upperStop.value) return upperStop.color;
+
+    for (let i = 0; i < stops.length - 1; i++) {
+        if (value >= stops[i].value && value <= stops[i + 1].value) {
+            lowerStop = stops[i];
+            upperStop = stops[i + 1];
+            break;
+        }
+    }
+
+    const color1 = parseRgba(lowerStop.color);
+    const color2 = parseRgba(upperStop.color);
+    if (!color1 || !color2) {
+        console.warn("Could not parse stop colors:", lowerStop.color, upperStop.color);
+        return 'rgba(128, 128, 128, 0.5)';
+    }
+
+    const range = upperStop.value - lowerStop.value;
+    const factor = (range === 0) ? 0 : (value - lowerStop.value) / range;
+    return interpolateColor(color1, color2, factor);
+};
+
 // --- Rename Component ---
 const ChartThree = () => {
   // --- Context Hooks ---
@@ -78,25 +135,17 @@ const ChartThree = () => {
                 const minutes = date.getMinutes().toString().padStart(2, '0');
                 const formattedDate = `${month}/${yearShort} ${hours}:${minutes}`; // e.g., "05/24 15:45"
                 // --- ---
-
-                const numericValue = parseFloat(valueStr);
-                if (isNaN(numericValue)) return null;
-                // Use 'time' label for clarity
-                return { time: formattedDate, value: numericValue };
+                const value = parseFloat(valueStr);
+                if (isNaN(value)) return null; // Skip if value is not a number
+                return { date: formattedDate, value: value, originalDate: date }; // Keep original date for sorting
             } catch (e) {
-                console.error("processData (ChartThree): Error processing sample", sample, e);
+                console.error("Error processing sample:", sample, e);
                 return null;
             }
-        }).filter(item => item !== null);
+        }).filter(item => item !== null); // Remove null entries
 
-        // Sort by actual date/time before formatting
-        processedSamples.sort((a, b) => {
-            // We need the original time for sorting. Let's re-parse or adjust the structure.
-            // Quick fix: Re-parse from the formatted string (less efficient, assumes format consistency)
-            // A better way would be to keep the original timestamp alongside the formatted one.
-            // For now, let's assume the service returns them in order or sorting isn't critical.
-             return 0; // Placeholder
-        });
+        // Sort by original date
+        processedSamples.sort((a, b) => a.originalDate - b.originalDate);
 
         console.log("ChartThree: Processed Data for Chart:", processedSamples);
     }
@@ -112,7 +161,8 @@ const ChartThree = () => {
           clickDetails.location
       );
       if (!params) {
-          setActualChartData([]);
+          console.log("ChartThree: Skipping fetch - Invalid parameters.");
+          setActualChartData(null); // Clear data if params invalid
           return;
       }
       // console.log(`ChartThree Fetch Triggered w/ Prepared Params | Time: ${params.startEpochMs}-${params.endEpochMs} | Layer: ${params.layerConfig.id} | Loc: ...`);
@@ -166,45 +216,95 @@ const ChartThree = () => {
   // Updated titles and labels
   useEffect(() => {
     const dataToDraw = actualChartData;
+    const colorRamp = selectedVariable?.chartColorRamp; // Get the ramp
 
-    if (chartContainerRef.current && selectedVariable && dataToDraw) {
+    if (chartContainerRef.current && selectedVariable && dataToDraw && colorRamp) {
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
       }
 
       if (dataToDraw.length > 0) {
           const ctx = chartContainerRef.current.getContext('2d');
-          // Use 'time' property from processed data
-          const labels = dataToDraw.map(item => item.time);
+          const labels = dataToDraw.map(item => item.date); // Use formatted date string
           const dataValues = dataToDraw.map(item => item.value);
+
+          // --- Generate color arrays using the helper function ---
+          const pointColors = dataValues.map(value => getColorForValue(value, colorRamp));
+          // --- ---
 
           chartInstanceRef.current = new Chart(ctx, {
             type: 'line',
             data: {
               labels: labels,
               datasets: [{
-                label: selectedVariable.name, data: dataValues,
-                borderColor: 'blue', // Changed color for distinction
-                backgroundColor: 'rgba(0, 0, 255, 0.1)', // Changed color
-                pointBackgroundColor: 'blue', // Changed color
-                pointBorderColor: 'blue', // Changed color
-                pointRadius: 3, // Slightly smaller points for potentially more data
+                label: selectedVariable.name,
+                data: dataValues,
+                fill: false,
+                tension: 0.1,
+                pointBackgroundColor: pointColors,
+                pointBorderColor: pointColors,
+                segment: {
+                  borderColor: ctx => getColorForValue(ctx.p0.parsed.y, colorRamp),
+                },
+                pointRadius: 3,
                 pointHoverRadius: 5,
-                tension: 0.1
               }]
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                // Updated title
-                title: { display: true, text: `Hourly ${selectedVariable.name}`, color: '#000000', font: { size: 16 } },
+                title: { 
+                  display: true, 
+                  text: `Hourly ${selectedVariable.name}`, 
+                  color: '#ffffff', 
+                  font: { size: 16 } 
+                },
                 legend: { display: false },
+                tooltip: {
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  callbacks: {
+                    label: function(context) {
+                      let label = context.dataset.label || '';
+                      if (label) label += ': ';
+                      if (context.parsed.y !== null) {
+                        label += context.parsed.y.toFixed(2);
+                      }
+                      return label;
+                    }
+                  }
+                }
               },
               scales: {
-                y: { beginAtZero: false, title: { display: true, text: selectedVariable.unit, color: '#000000' }, ticks: { color: '#000000' }, grid: { color: '#cccccc' } },
-                // Updated x-axis title
-                x: { title: { display: true, text: 'Time (MM/YY HH:mm)', color: '#000000' }, ticks: { color: '#000000' }, grid: { color: '#cccccc' } }
+                y: { 
+                  beginAtZero: false, 
+                  title: { 
+                    display: true, 
+                    text: selectedVariable.unit, 
+                    color: '#ffffff' 
+                  }, 
+                  ticks: { 
+                    color: '#ffffff' 
+                  }, 
+                  grid: { 
+                    color: '#333333' 
+                  } 
+                },
+                x: { 
+                  title: { 
+                    display: true, 
+                    text: 'Time (MM/YY HH:mm)', 
+                    color: '#ffffff' 
+                  }, 
+                  ticks: { 
+                    color: '#ffffff' 
+                  }, 
+                  grid: { 
+                    color: '#333333' 
+                  } 
+                }
               }
             }
           });
@@ -221,7 +321,7 @@ const ChartThree = () => {
       }
 
     } else {
-      // Destroy chart if variable deselected or data is null
+      // Destroy chart if variable deselected, data is null, or ramp missing
       if (chartInstanceRef.current) {
         chartInstanceRef.current.destroy();
         chartInstanceRef.current = null;

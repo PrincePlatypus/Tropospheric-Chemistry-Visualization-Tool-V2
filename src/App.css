@@ -7,87 +7,134 @@
   --controls-transform: translateX(-50%); /* Fine-tune centering */
 }
 
-.App {
-  text-align: center;
-  height: 100vh; /* Make App container fill viewport height */
-  width: 100vw; /* Make App container fill viewport width */
-  overflow: hidden; /* Prevent scrollbars from App container */
-  position: relative; /* Needed for absolute positioning of controls */
-  background-color: #f0f0f0; /* Optional: Light background for visibility */
+/* General App Styling */
+body {
   margin: 0;
-  padding: 0;
-  display: flex; /* Use flex to manage children if needed, though grid handles main layout */
-  flex-direction: column; /* Stack grid and potentially other elements */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #ffffff; /* Set default font color to white */
+  height: 100vh; /* Ensure body takes full viewport height */
+  display: flex; /* Use flexbox for body */
+  flex-direction: column; /* Stack children vertically */
+  background-color: #001c39; /* Set body background color */
 }
 
-/* Remove any default margins and padding */
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
+#root {
+  flex-grow: 1; /* Allow root to grow and fill space */
+  display: flex; /* Use flexbox for root */
+  flex-direction: column; /* Stack children vertically */
+  /* background-color: #001c39; */ /* Background moved to body */
 }
 
-/* Grid Container for Charts and Map */
-.grid-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Two equal-width columns */
-  grid-template-rows: var(--grid-row-top-height) var(--grid-row-bottom-height); /* Rows based on CSS variables */
-  width: 100%;
-  height: 100%; /* Grid takes full App height */
-  padding: 0;
-  margin: 0;
-  gap: 0; /* No gap between grid items */
-}
-
-/* Individual Grid Items (Charts/Map) */
-.grid-item {
-  border: none; /* Remove any borders */
-  padding: 0; /* Remove padding */
-  margin: 0; /* Remove margin */
-  overflow: hidden; /* Prevent content overflow from breaking layout */
-  position: relative; /* For potential internal absolute positioning */
-  background-color: white; /* Give items a background */
-  display: flex; /* Use flexbox to manage content within the item */
-  flex-direction: column; /* Stack content vertically */
-}
-
-/* Specific grid item assignments (ensure these match App.jsx structure) */
-.top-left { grid-area: 1 / 1 / 2 / 2; }
-.top-right { grid-area: 1 / 2 / 2 / 3; }
-.bottom-left { grid-area: 2 / 1 / 3 / 2; }
-.bottom-right { grid-area: 2 / 2 / 3 / 3; }
-
-/* Container for Controls (Floating Box) */
-.controls-container {
-  position: absolute; /* Position relative to .App */
-  bottom: var(--controls-bottom);
-  left: var(--controls-left);
-  transform: var(--controls-transform);
-  z-index: 1000; /* Ensure controls are above map/charts */
-
+.app-container {
   display: flex;
-  gap: 10px; /* Space between control elements */
-  align-items: center; /* Align items vertically */
+  flex-direction: column; /* Stack controls above content */
+  height: 100%; /* Make app container fill the root */
+  width: 100%;
+  overflow: hidden; /* Prevent scrollbars on the main container */
+  position: relative; /* Needed for absolute positioning of controls */
+}
 
-  background-color: rgba(245, 245, 245, 0.9); /* Semi-transparent background */
-  padding: 10px 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+/* --- Controls Wrapper (NEW - Static Position) --- */
+.controls-wrapper {
+  flex: 3; /* 2 parts out of 10 total */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  width: 100%;
+  min-height: 0; /* Allow shrinking */
+}
+
+/* Optional: Row for Location Input and Variable Selector */
+.location-variable-row {
+  display: flex;
+  justify-content: center; /* Center items in the row */
+  align-items: center; /* Align items vertically */
+  width: 100%; /* Take full width of the controls wrapper */
+}
+
+/* --- Main Content Area --- */
+.main-content-area {
+  display: flex; /* Use flexbox for two columns */
+  flex-grow: 1; /* Allow this area to fill remaining space */
+  width: 100%;
+  /* height: calc(100% - 150px); */ /* No longer needed, flex-grow handles height */
+  height: 100%; /* Take full available height */
+  /* Consider adding a gap if desired */
+  padding: 10px; /* Add some space around the content area */
+  box-sizing: border-box;
+}
+
+/* --- Left and Right Columns --- */
+.right-column {
+  flex: 1; /* Each column takes half the space */
+  display: flex;
+  flex-direction: column; /* Stack components vertically within columns */
+  height: 100%; /* Fill the height of the main content area */
+  overflow: hidden; /* Prevent columns from overflowing */
+}
+
+/* --- Left Column --- */
+.left-column {
+  flex: 1; /* Take half of the main content area */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* --- Component Wrapper --- */
+/* Ensures components fill their column space */
+.component-wrapper {
+  flex: 1; /* Charts/Map now share the remaining space */
+  background: transparent;
+  overflow: hidden; /* Important: Prevent content overflow */
+  display: flex; /* Use flex to make child fill space */
+  flex-direction: column; /* Stack title/content if needed */
+  min-height: 0; /* Crucial for flexbox shrinking/growing */
+}
+
+/* Ensure MapView and Chart containers fill the wrapper */
+.map-container, /* Assuming MapView uses this class */
+.chart-container { /* Assuming charts use this class */
+  flex-grow: 1; /* Allow map/chart to fill the wrapper */
+  width: 100%;
+  height: 100%;
+  min-height: 0; /* Crucial for flexbox shrinking/growing */
+}
+
+/* Specific adjustments if needed */
+#map-view-wrapper {
+  /* Map might not need internal padding */
+  padding: 0;
+}
+
+/* Remove old grid styles if they exist */
+/* .app-grid { ... } */
+/* .grid-item { ... } */
+
+/* Ensure chart canvas wrappers behave correctly */
+.chart-canvas-wrapper {
+    flex-grow: 1;
+    position: relative; /* Needed for chart.js responsiveness */
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+canvas {
+    display: block; /* Prevent extra space below canvas */
+    max-width: 100%;
+    max-height: 100%;
 }
 
 /* Chart Container base styles (apply to all chart components) */
-.chart-container {
-  width: 100%;
-  height: 100%;
-  padding: 10px; /* Add some internal padding */
-  box-sizing: border-box; /* Include padding in width/height */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; /* Prevent internal scrollbars if chart resizes */
-}
-
 .chart-container h3 {
   margin-top: 0;
   margin-bottom: 10px;
@@ -125,8 +172,7 @@ body, html {
 /* Styles for AnimationButton */
 .animation-button {
   /* Basic button styling */
-  padding: 8px 15px;
-  font-size: 1em;
+  padding: 1px 15px;
   cursor: pointer;
   border: 1px solid #ccc;
   background-color: #fff;
@@ -145,8 +191,24 @@ body, html {
 
 /* Adjust TimeControl margin if needed due to flex layout */
 .time-control {
-  margin: 0; /* Remove auto horizontal margins if previously set */
   /* Keep width/max-width as needed */
-   width: 90%;
-   max-width: 900px;
+   width: 100%;
+}
+
+/* ChartOne takes 50% */
+#chart-one-wrapper {
+  flex: 4; /* 5 parts out of 10 total */
+  min-height: 0; /* Allow shrinking */
+}
+
+/* ChartTwo takes 30% */
+#chart-two-wrapper {
+  flex: 3; /* 3 parts out of 10 total */
+  min-height: 0; /* Allow shrinking */
+}
+
+/* Right column components remain equal */
+.right-column > .component-wrapper {
+  flex: 1;
+  min-height: 0;
 } 

@@ -9,6 +9,7 @@ const INITIAL_VARIABLES = Object.keys(VARIABLE_DEFINITIONS).map(label => ({
   name: `${label} (${VARIABLE_DEFINITIONS[label].dimension})`, // Construct a name
   unit: VARIABLE_DEFINITIONS[label].unit,
   dimension: VARIABLE_DEFINITIONS[label].dimension,
+  chartColorRamp: VARIABLE_DEFINITIONS[label].chartColorRamp,
   // Note: We might need a mapping back to specific layer IDs if needed elsewhere,
   // but for selection, the label (ID) is key.
 }));
@@ -54,6 +55,7 @@ export const VariableProvider = ({ children }) => {
             name: `${selectedVariableId} (${variableConfig.dimension})`, // Reconstruct name if needed
             unit: variableConfig.unit,
             dimension: variableConfig.dimension,
+            chartColorRamp: variableConfig.chartColorRamp,
         };
     }
     return null; // Return null if the ID doesn't match anything in VARIABLE_DEFINITIONS

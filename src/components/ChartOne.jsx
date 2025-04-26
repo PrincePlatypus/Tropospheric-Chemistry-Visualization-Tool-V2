@@ -63,6 +63,63 @@ const getDayOfYear = (date) => {
   return Math.floor(diff / oneDay);
 };
 
+// --- Helper: Parse RGBA Color String ---
+const parseRgba = (rgbaString) => {
+    const match = rgbaString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (!match) return null;
+    return {
+        r: parseInt(match[1], 10),
+        g: parseInt(match[2], 10),
+        b: parseInt(match[3], 10),
+        a: match[4] !== undefined ? parseFloat(match[4]) : 1,
+    };
+};
+
+// --- Helper: Interpolate between two colors ---
+const interpolateColor = (color1, color2, factor) => {
+    if (factor < 0) factor = 0;
+    if (factor > 1) factor = 1;
+    const result = {
+        r: Math.round(color1.r + factor * (color2.r - color1.r)),
+        g: Math.round(color1.g + factor * (color2.g - color1.g)),
+        b: Math.round(color1.b + factor * (color2.b - color1.b)),
+        a: color1.a + factor * (color2.a - color1.a),
+    };
+    return `rgba(${result.r}, ${result.g}, ${result.b}, ${result.a})`;
+};
+
+// --- Helper: Get Color from Ramp based on Value ---
+const getColorForValue = (value, chartColorRamp) => {
+    if (value === null || value === undefined || !chartColorRamp || !chartColorRamp.stops || chartColorRamp.stops.length === 0) {
+        return 'rgba(128, 128, 128, 0.5)'; // Default grey
+    }
+    const stops = chartColorRamp.stops;
+    let lowerStop = stops[0];
+    let upperStop = stops[stops.length - 1];
+
+    if (value <= lowerStop.value) return lowerStop.color;
+    if (value >= upperStop.value) return upperStop.color;
+
+    for (let i = 0; i < stops.length - 1; i++) {
+        if (value >= stops[i].value && value <= stops[i + 1].value) {
+            lowerStop = stops[i];
+            upperStop = stops[i + 1];
+            break;
+        }
+    }
+
+    const color1 = parseRgba(lowerStop.color);
+    const color2 = parseRgba(upperStop.color);
+    if (!color1 || !color2) {
+        console.warn("Could not parse stop colors:", lowerStop.color, upperStop.color);
+        return 'rgba(128, 128, 128, 0.5)';
+    }
+
+    const range = upperStop.value - lowerStop.value;
+    const factor = (range === 0) ? 0 : (value - lowerStop.value) / range;
+    return interpolateColor(color1, color2, factor);
+};
+
 // --- Component Name: ChartOne ---
 const ChartOne = () => {
   // --- Context Hooks ---
@@ -262,11 +319,11 @@ const ChartOne = () => {
   };
 
   const headerStyle = {
-    fontSize: '14px', // Adjust size
-    padding: '2px 0 4px 0',
     textAlign: 'center',
-    fontWeight: '500',
-    flexShrink: 0, // Prevent header from shrinking
+    padding: '10px',
+    fontSize: '1.1em',
+    color: '#ffffff', // Changed to white
+    fontWeight: 'bold'
   };
 
   const gridStyle = {
@@ -286,7 +343,7 @@ const ChartOne = () => {
     gap: '1px', // Fine gap between week labels
     fontSize: '10px',
     textAlign: 'center',
-    color: '#555555', // Use app's secondary text color
+    color: '#ffffff', // Use app's secondary text color
     paddingRight: `${PADDING_RIGHT_PX}px`, // Match padding
     boxSizing: 'border-box',
     flexShrink: 0,
@@ -312,13 +369,10 @@ const ChartOne = () => {
   };
 
   const dayLabelStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center', // Center the day letter
-    fontSize: '10px',
-    color: '#555555', // Use app's secondary text color
-    boxSizing: 'border-box',
-    padding: '0 2px', // Minimal padding
+    textAlign: 'center',
+    padding: '5px',
+    color: '#ffffff', // Changed to white
+    fontSize: '0.8em'
   };
 
   const weekColumnStyle = {
@@ -360,16 +414,14 @@ const ChartOne = () => {
     return `rgb(${r}, ${g}, ${b})`;
   }, [minValue, maxValue]); // Depend on calculated min/max
 
-  const cellStyle = (value, isValidDate) => ({
-    backgroundColor: getCellColor(value), // Use the gradient color
+  const cellStyle = (value, hasData) => ({
     width: '100%',
     height: '100%',
-    borderRadius: '1px',
-    cursor: isValidDate ? 'pointer' : 'default',
-    opacity: isValidDate ? 1 : 0.3,
-    minWidth: 0,
-    minHeight: 0,
-    boxSizing: 'border-box',
+    backgroundColor: hasData 
+        ? getColorForValue(value, selectedVariable?.chartColorRamp) 
+        : 'transparent',
+    border: '0.5px solidrgb(31, 31, 31)', // Darker border for better contrast
+    cursor: hasData ? 'pointer' : 'default',
   });
 
   const dayAbbreviations = ["M", "T", "W", "T", "F", "S", "S"]; // Monday first
@@ -442,7 +494,7 @@ const ChartOne = () => {
         )}
         {/* No Data Message */}
         {!isLoading && !error && actualChartData && actualChartData.length === 0 && (
-             <div style={{ textAlign: 'center', padding: '20px', color: '#888', alignSelf: 'center' }}>
+             <div style={{ textAlign: 'center', padding: '20px', color: '#ffffff', alignSelf: 'center' }}>
                  No valid data available for {currentYear || 'the selected year'}.
              </div>
          )}

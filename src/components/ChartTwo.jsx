@@ -54,6 +54,77 @@ const prepareFetchParameters = (intervalTimeRange, selectedVariableId, clickLoca
     };
 };
 
+// --- Helper: Parse RGBA Color String ---
+const parseRgba = (rgbaString) => {
+    const match = rgbaString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (!match) return null;
+    return {
+        r: parseInt(match[1], 10),
+        g: parseInt(match[2], 10),
+        b: parseInt(match[3], 10),
+        a: match[4] !== undefined ? parseFloat(match[4]) : 1, // Default alpha to 1 if not present
+    };
+};
+
+// --- Helper: Interpolate between two colors ---
+const interpolateColor = (color1, color2, factor) => {
+    if (factor < 0) factor = 0;
+    if (factor > 1) factor = 1;
+    const result = {
+        r: Math.round(color1.r + factor * (color2.r - color1.r)),
+        g: Math.round(color1.g + factor * (color2.g - color1.g)),
+        b: Math.round(color1.b + factor * (color2.b - color1.b)),
+        a: color1.a + factor * (color2.a - color1.a),
+    };
+    return `rgba(${result.r}, ${result.g}, ${result.b}, ${result.a})`;
+};
+
+// --- Helper: Get Color from Ramp based on Value ---
+const getColorForValue = (value, chartColorRamp) => {
+    if (value === null || value === undefined || !chartColorRamp || !chartColorRamp.stops || chartColorRamp.stops.length === 0) {
+        return 'rgba(128, 128, 128, 0.5)'; // Default grey for no data or invalid ramp
+    }
+
+    const stops = chartColorRamp.stops;
+
+    // Find the appropriate segment in the color ramp
+    let lowerStop = stops[0];
+    let upperStop = stops[stops.length - 1];
+
+    // Handle edge cases: value below first stop or above last stop
+    if (value <= lowerStop.value) {
+        return lowerStop.color;
+    }
+    if (value >= upperStop.value) {
+        return upperStop.color;
+    }
+
+    // Find the two stops the value falls between
+    for (let i = 0; i < stops.length - 1; i++) {
+        if (value >= stops[i].value && value <= stops[i + 1].value) {
+            lowerStop = stops[i];
+            upperStop = stops[i + 1];
+            break;
+        }
+    }
+
+    // Parse the colors
+    const color1 = parseRgba(lowerStop.color);
+    const color2 = parseRgba(upperStop.color);
+
+    if (!color1 || !color2) {
+        console.warn("Could not parse stop colors:", lowerStop.color, upperStop.color);
+        return 'rgba(128, 128, 128, 0.5)'; // Fallback grey
+    }
+
+    // Calculate interpolation factor
+    const range = upperStop.value - lowerStop.value;
+    const factor = (range === 0) ? 0 : (value - lowerStop.value) / range;
+
+    // Interpolate and return the color
+    return interpolateColor(color1, color2, factor);
+};
+
 const ChartTwo = () => {
   // --- Context Hooks ---
   const { intervalTimeRange } = useTime();
@@ -102,14 +173,12 @@ const ChartTwo = () => {
              // Need to re-parse or access original time if sorting is critical after formatting
              // For simplicity, assuming the service returns them mostly in order or sorting isn't strictly needed here
              // If strict chronological sort is needed, process needs adjustment
-             return 0; // Placeholder: Keep original order or implement date-based sort
+             return 0; // Placeholder - Assuming data is roughly ordered or exact order isn't critical for this chart type
         });
 
         console.log("ChartTwo: Processed Data for Chart:", processedSamples);
     }
-    // --- Return the processed data (or empty array) ---
     return processedSamples;
-
   }, []);
 
   // --- Fetch Function ---
@@ -175,9 +244,10 @@ const ChartTwo = () => {
   useEffect(() => {
     // --- Use actualChartData state ---
     const dataToDraw = actualChartData;
+    const colorRamp = selectedVariable?.chartColorRamp; // Get the ramp
 
     // Only proceed if we have a canvas, a selected variable, AND data
-    if (chartContainerRef.current && selectedVariable && dataToDraw) {
+    if (chartContainerRef.current && selectedVariable && dataToDraw && colorRamp) {
 
       // Destroy previous chart instance
       if (chartInstanceRef.current) {
@@ -190,28 +260,83 @@ const ChartTwo = () => {
           const labels = dataToDraw.map(item => item.month); // Use formatted month
           const dataValues = dataToDraw.map(item => item.value);
 
+          // --- Generate color arrays using the helper function ---
+          const pointColors = dataValues.map(value => getColorForValue(value, colorRamp));
+          // --- ---
+
           chartInstanceRef.current = new Chart(ctx, {
             type: 'line',
             data: {
               labels: labels,
               datasets: [{
-                label: selectedVariable.name, data: dataValues,
-                borderColor: 'red', backgroundColor: 'rgba(255, 0, 0, 0.1)',
-                pointBackgroundColor: 'red', pointBorderColor: 'red',
-                pointRadius: 4, pointHoverRadius: 6, tension: 0.1
+                label: selectedVariable.name,
+                data: dataValues,
+                fill: false,
+                tension: 0.1,
+                pointBackgroundColor: pointColors,
+                pointBorderColor: pointColors,
+                segment: {
+                  borderColor: ctx => getColorForValue(ctx.p0.parsed.y, colorRamp),
+                },
+                pointRadius: 4,
+                pointHoverRadius: 6,
               }]
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                title: { display: true, text: `Monthly ${selectedVariable.name}`, color: '#000000', font: { size: 16 } },
+                title: { 
+                  display: true, 
+                  text: `Monthly ${selectedVariable.name}`, 
+                  color: '#ffffff', 
+                  font: { size: 16 } 
+                },
                 legend: { display: false },
-                // Optional: Add annotation or message if data is empty?
+                tooltip: {
+                  titleColor: '#ffffff',
+                  bodyColor: '#ffffff',
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  callbacks: {
+                    label: function(context) {
+                      let label = context.dataset.label || '';
+                      if (label) label += ': ';
+                      if (context.parsed.y !== null) {
+                        label += context.parsed.y.toFixed(2);
+                      }
+                      return label;
+                    }
+                  }
+                }
               },
               scales: {
-                y: { beginAtZero: false, title: { display: true, text: selectedVariable.unit, color: '#000000' }, ticks: { color: '#000000' }, grid: { color: '#cccccc' } },
-                x: { title: { display: true, text: 'Month', color: '#000000' }, ticks: { color: '#000000' }, grid: { color: '#cccccc' } }
+                y: { 
+                  beginAtZero: false, 
+                  title: { 
+                    display: true, 
+                    text: selectedVariable.unit, 
+                    color: '#ffffff' 
+                  }, 
+                  ticks: { 
+                    color: '#ffffff' 
+                  }, 
+                  grid: { 
+                    color: '#333333' 
+                  } 
+                },
+                x: { 
+                  title: { 
+                    display: true, 
+                    text: 'Month', 
+                    color: '#ffffff' 
+                  }, 
+                  ticks: { 
+                    color: '#ffffff' 
+                  }, 
+                  grid: { 
+                    color: '#333333' 
+                  } 
+                }
               }
             }
           });
