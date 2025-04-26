@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import Map from '@arcgis/core/Map';
 import MapView from '@arcgis/core/views/MapView';
 import ImageryLayer from '@arcgis/core/layers/ImageryLayer';
@@ -10,6 +10,8 @@ import { MAP_LAYERS, VARIABLE_DEFINITIONS } from '../config/layers';
 import { useTime } from '../context/TimeContext';
 import { useSpatial } from '../context/SpatialContext';
 import { useVariable } from '../context/VariableContext';
+import { useAnimation } from '../context/AnimationContext';
+import { useChartThree } from '../context/ChartThreeContext';
 
 const MapComponent = () => {
   const mapDiv = useRef(null);
@@ -18,6 +20,9 @@ const MapComponent = () => {
   const { intervalTimeRange } = useTime();
   const { updateClickDetails } = useSpatial();
   const { selectedVariableId } = useVariable();
+  const { isAnimating } = useAnimation();
+  const { rawSamples } = useChartThree();
+  const animationCancelRef = useRef(false);
 
   // Initialize ArcGIS configuration
   const initializeArcGIS = () => {
@@ -88,7 +93,6 @@ const MapComponent = () => {
     // Initial update of layer visibility and rendering based on default variable
     // This will be called again by the useEffect hook if the variable changes
     updateLayerVisibilityAndRendering(selectedVariableId);
-
 
     return view;
   };
@@ -179,7 +183,6 @@ const MapComponent = () => {
     });
   };
 
-
   // --- Map Click Handler ---
   const handleMapClick = async (event) => {
     if (!viewInstance.current) return;
@@ -245,6 +248,52 @@ const MapComponent = () => {
     updateLayerVisibilityAndRendering(selectedVariableId);
   }, [selectedVariableId]); // Dependency: selected variable ID
 
+  // --- Effect to Process Samples for Animation Time Ranges ---
+  useEffect(() => {
+    console.log("MapView: Animation/Samples Effect Triggered. isAnimating:", isAnimating, "rawSamples:", rawSamples ? `(${rawSamples.length} samples)` : 'null');
+
+    if (isAnimating && rawSamples && rawSamples.length > 0) {
+      console.log("MapView: Animation active and samples found. Processing time ranges...");
+      const timeRangesMatrix = rawSamples.map(sample => {
+        const stdTimeValue = sample?.attributes?.StdTime;
+        if (stdTimeValue === undefined || stdTimeValue === null) {
+          console.warn("MapView: Sample missing StdTime attribute:", sample);
+          return null; // Skip samples without a valid time
+        }
+
+        try {
+          // Assuming StdTime is epoch milliseconds or a string parsable by Date
+          const sampleTimeMs = new Date(stdTimeValue).getTime();
+          if (isNaN(sampleTimeMs)) {
+            console.warn("MapView: Invalid date parsed from StdTime:", stdTimeValue);
+            return null; // Skip samples with invalid dates
+          }
+
+          const oneMinuteMs = 60 * 1000;
+          const timeBefore = sampleTimeMs - oneMinuteMs;
+          const timeAfter = sampleTimeMs + oneMinuteMs;
+          return [timeBefore, timeAfter];
+        } catch (error) {
+          console.error("MapView: Error processing sample time:", sample, error);
+          return null; // Skip samples that cause errors
+        }
+      }).filter(range => range !== null); // Filter out any null entries from skipped samples
+
+      console.log("MapView: Processed animation time ranges (ms):", timeRangesMatrix);
+
+      // --- Call the new animation function ---
+      if (viewInstance.current && timeRangesMatrix.length > 0) {
+        animateMapTimeSlices(timeRangesMatrix, viewInstance.current, selectedVariableId, animationCancelRef);
+      }
+      // --- End Animation Time Range Effect ---
+
+    } else if (isAnimating) {
+      console.log("MapView: Animation active but no raw samples available yet.");
+    } else {
+      console.log("MapView: Animation not active.");
+    }
+  }, [isAnimating, rawSamples, selectedVariableId]); // Dependencies: animation status and raw samples
+
   return (
     <div
       ref={mapDiv}
@@ -257,5 +306,80 @@ const MapComponent = () => {
     />
   );
 };
+
+// --- New Function to Animate Map Time Slices ---
+const animateMapTimeSlices = async (timeRangesMatrix, mapView, selectedVariableId, cancelRef) => {
+    if (!mapView || !mapView.map || !selectedVariableId || !timeRangesMatrix || timeRangesMatrix.length === 0) {
+        console.log("animateMapTimeSlices: Missing required parameters or empty time ranges.");
+        return;
+    }
+
+    // Find the configuration for the currently selected variable's layer
+    // Adjust find logic if a specific layer (e.g., 'Hourly') should always be used for animation
+    const targetLayerConfig = Object.values(MAP_LAYERS).find(
+        layer => layer.variableLabel === selectedVariableId
+    );
+
+    if (!targetLayerConfig || !targetLayerConfig.id || !targetLayerConfig.variableName) {
+        console.error(`animateMapTimeSlices: Could not find valid layer config or variableName for variableLabel: ${selectedVariableId}`);
+        return;
+    }
+
+    // Find the actual layer instance on the map
+    const layer = mapView.map.layers.find(l => l.id === targetLayerConfig.id && l.type === 'imagery');
+
+    if (!layer) {
+        console.error(`animateMapTimeSlices: Layer instance with ID ${targetLayerConfig.id} not found on the map.`);
+        return;
+    }
+
+    console.log(`animateMapTimeSlices: Starting animation loop for layer ${layer.id} with ${timeRangesMatrix.length} frames.`);
+
+    let frameCounter = 0; // Counter for logging
+
+    // Loop through each time range [startEpoch, endEpoch]
+    for (const timeRange of timeRangesMatrix) {
+        // --- Cancellation Check ---
+        if (cancelRef.current) {
+            console.log(`animateMapTimeSlices: Animation cancelled by user at frame ${frameCounter + 1}.`);
+            break; // Exit the loop
+        }
+        // --- ---
+
+        frameCounter++;
+        const [startEpoch, endEpoch] = timeRange;
+
+        // Create the new MosaicRule
+        const mosaicRule = new MosaicRule({
+            ascending: true,
+            mosaicMethod: "esriMosaicCenter", // Or another method if needed
+            multidimensionalDefinition: [{
+                variableName: targetLayerConfig.variableName, // Use variableName from config
+                dimensionName: "StdTime", // Assuming this is correct
+                values: [[startEpoch, endEpoch]], // Use the specific time range for this frame
+                isSlice: false
+            }],
+            // where: `StdTime >= ${startEpoch} AND StdTime <= ${endEpoch}` // Alternative if needed, check service capabilities
+        });
+
+        // Apply the MosaicRule to the layer - This initiates the request
+        layer.mosaicRule = mosaicRule;
+        console.log(`Frame ${frameCounter}: MosaicRule update posted for time range: ${new Date(startEpoch).toISOString()} - ${new Date(endEpoch).toISOString()}`);
+
+        // Wait for 0.2 seconds (200 milliseconds) before posting the next request
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    // Log completion only if not cancelled mid-way
+    if (!cancelRef.current) {
+        console.log(`animateMapTimeSlices: Finished posting all ${frameCounter} animation frame requests for layer ${layer.id}.`);
+    }
+
+    // Optional: Reset mosaic rule after animation? Only if not cancelled?
+    // if (!cancelRef.current) {
+    //    layer.mosaicRule = null;
+    // }
+};
+// --- End New Function ---
 
 export default MapComponent; 

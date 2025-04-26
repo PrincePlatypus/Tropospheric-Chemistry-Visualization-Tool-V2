@@ -1,0 +1,60 @@
+.loading-overlay {
+  position: fixed; /* Sit on top of everything */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75); /* Darker overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050; /* Higher than modal, lower than potential debug tools */
+  color: #ffffff;
+}
+
+.loading-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.loading-content p {
+  font-size: 1.1em;
+  margin: 0;
+}
+
+.loading-cancel-button {
+  padding: 8px 16px;
+  border: 1px solid #cccccc;
+  border-radius: 5px;
+  background-color: #555555;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.loading-cancel-button:hover {
+  background-color: #777777;
+}
+
+/* Basic CSS Spinner */
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3); /* Light border */
+  border-left-color: #ffffff; /* White spinner part */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+} 

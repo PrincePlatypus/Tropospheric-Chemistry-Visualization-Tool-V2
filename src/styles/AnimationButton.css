@@ -1,0 +1,21 @@
+.animation-button {
+  padding: 8px 15px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #007bff; /* Example blue */
+  color: white;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+.animation-button:hover {
+  background-color: #0056b3;
+}
+
+.animation-button:disabled {
+  background-color: #6c757d; /* Grey when disabled */
+  opacity: 0.65;
+  cursor: not-allowed;
+} 
